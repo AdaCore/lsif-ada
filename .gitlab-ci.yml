@@ -21,6 +21,7 @@ build:
       eval $(anod printenv --sandbox-dir /it/wave vss --qualifier=compiler=stable) ;\
       make; \
       .objs/lsif-ada > dump.lsif)
+    cat dump.lsif
 
   artifacts:
     reports:
