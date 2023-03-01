@@ -6,6 +6,7 @@ build:
     - mem:16
   stage: build
   script: |
+    set -x
     . ~/.aws_container_credentials
     export PATH=/it/e3/bin:$PATH
     anod install --sandbox-dir /it/wave stable-gnatall
