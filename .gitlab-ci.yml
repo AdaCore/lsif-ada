@@ -12,7 +12,7 @@ build:
     anod install --sandbox-dir /it/wave stable-libgpr2
     # anod install --sandbox-dir /it/wave stable-langkit_support
     anod install --sandbox-dir /it/wave stable-libadalang
-    anod install --sandbox-dir /it/wave vss --qualifier=compiler-stable
+    anod build --sandbox-dir /it/wave vss --qualifier=compiler-stable
     ( eval $(anod printenv --sandbox-dir /it/wave stable-gnatall) ;\
       eval $(anod printenv --sandbox-dir /it/wave stable-libgpr2) ;\
       eval $(anod printenv --sandbox-dir /it/wave stable-libadalang) ;\
