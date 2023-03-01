@@ -1,0 +1,18 @@
+
+build:
+  services:
+    - image:sandbox
+    - cpu:4
+    - mem:16
+  stage: build
+  script: |
+    . ~/.aws_container_credentials
+    export PATH=/it/e3/bin:$PATH
+    anod install --sandbox-dir /it/wave gnatall
+    ( eval $(anod printenv --sandbox-dir /it/wave gnatall) ;\
+      make;
+      .objs/lsif-ada > dump.lsif)
+
+  artifacts:
+    reports:
+      lsif: dump.lsif
