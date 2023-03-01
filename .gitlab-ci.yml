@@ -9,16 +9,16 @@ build:
     set -x
     . ~/.aws_container_credentials
     export PATH=/it/e3/bin:$PATH
-    anod install --sandbox-dir /it/wave gnatall
-    anod install --sandbox-dir /it/wave langkit_support
-    anod install --sandbox-dir /it/wave libgpr2 --qualifier=bare
-    anod install --sandbox-dir /it/wave libadalang
-    anod build --sandbox-dir /it/wave vss
-    ( eval $(anod printenv --sandbox-dir /it/wave gnatall) ;\
-      eval $(anod printenv --sandbox-dir /it/wave langkit_support) ;\
-      eval $(anod printenv --sandbox-dir /it/wave libgpr2 --qualifier=bare) ;\
-      eval $(anod printenv --sandbox-dir /it/wave libadalang) ;\
-      eval $(anod printenv --sandbox-dir /it/wave vss) ;\
+    anod install --sandbox-dir /it/wave stable-gnatall
+    anod install --sandbox-dir /it/wave stable-langkit_support
+    anod install --sandbox-dir /it/wave stable-libgpr2 --qualifier=bare
+    anod install --sandbox-dir /it/wave stable-libadalang
+    anod build --sandbox-dir /it/wave vss --qualifier=compiler=stable
+    ( eval $(anod printenv --sandbox-dir /it/wave stable-gnatall) ;\
+      eval $(anod printenv --sandbox-dir /it/wave stable-langkit_support) ;\
+      eval $(anod printenv --sandbox-dir /it/wave stable-libgpr2 --qualifier=bare) ;\
+      eval $(anod printenv --sandbox-dir /it/wave stable-libadalang) ;\
+      eval $(anod printenv --sandbox-dir /it/wave vss --qualifier=compiler=stable) ;\
       make; \
       .objs/lsif-ada > dump.lsif)
 
