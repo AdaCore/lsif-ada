@@ -89,34 +89,40 @@ begin
 
    Writer.Set_Stream (Output'Unchecked_Access);
 
-   Writer.Start_Document (Success);
-   Writer.Start_Object (Success);
-   Writer.Key_Name ("id", Success);
-   Writer.Integer_Value (Counter, Success);
-   Writer.Key_Name ("type", Success);
-   Writer.String_Value ("vertex", Success);
-   Writer.Key_Name ("label", Success);
-   Writer.String_Value ("metaData", Success);
-   Writer.Key_Name ("version", Success);
-   Writer.String_Value ("0.4.0", Success);
-   Writer.Key_Name ("positionEncoding", Success);
-   Writer.String_Value ("utf-16", Success);
-   Writer.Key_Name ("projectRoot", Success);
-   Writer.String_Value
-     ("file://"
-      & VSS.Strings.Conversions.To_Virtual_String
-        (Project_Tree.Root_Project.Path_Name.Virtual_File.Get_Parent
-           .Get_Parent.Display_Dir_Name),
-      Success);
-   Writer.Key_Name ("toolInfo", Success);
-   Writer.Start_Object (Success);
-   Writer.Key_Name ("name", Success);
-   Writer.String_Value ("lsif-ada", Success);
-   Writer.End_Object (Success);
-   Writer.End_Object (Success);
-   Writer.End_Document (Success);
-   Output.New_Line (Success);
-   Counter := Counter + 1;
+   declare
+      Path : constant String :=
+        Project_Tree.Root_Project.Path_Name.Virtual_File.Get_Parent
+          .Get_Parent.Display_Dir_Name;
+
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Counter, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("vertex", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("metaData", Success);
+      Writer.Key_Name ("version", Success);
+      Writer.String_Value ("0.4.0", Success);
+      Writer.Key_Name ("positionEncoding", Success);
+      Writer.String_Value ("utf-16", Success);
+      Writer.Key_Name ("projectRoot", Success);
+      Writer.String_Value
+        ("file://"
+         & VSS.Strings.Conversions.To_Virtual_String
+           (Path (Path'First .. Path'Last - 1)),
+         Success);
+      Writer.Key_Name ("toolInfo", Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("name", Success);
+      Writer.String_Value ("lsif-ada", Success);
+      Writer.End_Object (Success);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+      Counter := Counter + 1;
+   end;
 
    for Source of Project_Tree.Root_Project.Sources loop
       --  Ada.Text_IO.Put_Line ("f");
