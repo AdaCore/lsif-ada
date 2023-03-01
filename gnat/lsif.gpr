@@ -18,6 +18,7 @@
 with "gpr2";
 --  with "libgnatdoc";
 with "libadalang";
+with "vss_json";
 with "vss_text";
 
 project LSIF is
