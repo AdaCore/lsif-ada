@@ -11,12 +11,12 @@ build:
     export PATH=/it/e3/bin:$PATH
     anod install --sandbox-dir /it/wave gnatall
     anod install --sandbox-dir /it/wave langkit_support
-    anod install --sandbox-dir /it/wave gpr2 --qualifier=bare
+    anod install --sandbox-dir /it/wave libgpr2 --qualifier=bare
     anod install --sandbox-dir /it/wave libadalang
     anod build --sandbox-dir /it/wave vss
     ( eval $(anod printenv --sandbox-dir /it/wave gnatall) ;\
       eval $(anod printenv --sandbox-dir /it/wave langkit_support) ;\
-      eval $(anod printenv --sandbox-dir /it/wave gpr2 --qualifier=bare) ;\
+      eval $(anod printenv --sandbox-dir /it/wave libgpr2 --qualifier=bare) ;\
       eval $(anod printenv --sandbox-dir /it/wave libadalang) ;\
       eval $(anod printenv --sandbox-dir /it/wave vss) ;\
       make; \
