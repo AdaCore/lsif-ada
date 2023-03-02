@@ -15,7 +15,7 @@ build:
 
     mkdir subprojects
     git clone $GIT_CLONE_BASE/eng/ide/gnatdoc subprojects/gnatdoc
-    export GPR_PROJECT_PATH=`pwd`/subprojects/gnat:$GPR_PROJECT_PATH
+    export GPR_PROJECT_PATH=`pwd`/subprojects/gnatdoc/gnat:$GPR_PROJECT_PATH
 
     anod install --sandbox-dir /it/wave stable-gnatall
     anod install --sandbox-dir /it/wave stable-langkit_support
