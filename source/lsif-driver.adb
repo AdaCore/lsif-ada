@@ -250,6 +250,8 @@ procedure LSIF.Driver is
               (Result_Set_Id, Reference_Result_Id);
             LSIF.Serializer.Write_Item_Definitions_Edge
               (Reference_Result_Id, (1 => Vertex.Id), File.Id);
+            LSIF.Serializer.Write_Item_References_Edge
+              (Reference_Result_Id, (1 => Vertex.Id), File.Id);
          end if;
       end;
 

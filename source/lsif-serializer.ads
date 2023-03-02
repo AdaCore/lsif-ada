@@ -42,6 +42,11 @@ package LSIF.Serializer is
       In_Vertices : Identifier_Array;
       Document    : Interfaces.Integer_64);
 
+   procedure Write_Item_References_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertices : Identifier_Array;
+      Document    : Interfaces.Integer_64);
+
    procedure Write_Meta_Data_Vertex
      (Project_Root : VSS.Strings.Virtual_String);
 
