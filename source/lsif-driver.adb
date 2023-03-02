@@ -33,6 +33,8 @@ with GNATdoc.Comments.Helpers;
 with VSS.Strings.Conversions;
 with VSS.String_Vectors;
 
+with LSIF.Command_Line;
+with LSIF.Configuration;
 with LSIF.Serializer;
 
 procedure LSIF.Driver is
@@ -80,9 +82,8 @@ procedure LSIF.Driver is
         Libadalang.Analysis."=",
         "=");
 
-   Project_Tree    : GPR2.Project.Tree.Object;
-   Project_Context : GPR2.Context.Object;
-   LAL_Context     : Libadalang.Analysis.Analysis_Context;
+   Project_Tree : GPR2.Project.Tree.Object;
+   LAL_Context  : Libadalang.Analysis.Analysis_Context;
 
    Files : File_Maps.Map;
    Defs  : Defining_Name_Maps.Map;
@@ -563,15 +564,17 @@ procedure LSIF.Driver is
    end Pass_2;
 
 begin
+   LSIF.Command_Line.Initialize;
+
    --  Load project file
 
    begin
       Project_Tree.Load_Autoconf
         (GPR2.Path_Name.Create_File
-           (GPR2.Filename_Type'("gnat/lsif.gpr")),
-                   --  (VSS.Strings.Conversions.To_UTF_8_String
-                   --       (GNATdoc.Command_Line.Project_File))),
-         Project_Context);
+           (GPR2.Filename_Type  --  '("gnat/lsif.gpr")),
+                (VSS.Strings.Conversions.To_UTF_8_String
+                     (LSIF.Configuration.Project_File))),
+         LSIF.Configuration.Project_Context);
 
       Project_Tree.Update_Sources (With_Runtime => True);
 
