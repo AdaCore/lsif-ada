@@ -9,6 +9,11 @@ build:
     set -x
     . ~/.aws_container_credentials
     export PATH=/it/e3/bin:$PATH
+
+    mkdir subprojects
+    git clone $GIT_CLONE_BASE/eng/ide/gnatdoc subprojects/gnatdoc
+    export GPR_PROJECT_PATH=`pwd`/subprojects/gnat:$GPR_PROJECT_PATH
+
     anod install --sandbox-dir /it/wave stable-gnatall
     anod install --sandbox-dir /it/wave stable-langkit_support
     anod install --sandbox-dir /it/wave stable-libgpr2 --qualifier=bare
