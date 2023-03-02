@@ -277,17 +277,10 @@ procedure LSIF.Driver is
             GNATdoc.Comments.Helpers.Get_Plain_Text_Documentation
               (Ref_Decl, (others => <>), Code_Snippet, Documentation);
 
-            if not Documentation.Is_Empty then
-               LSIF.Serializer.Write_Hover_Result_Vertex
-                 (Hover_Result_Id,
-                  Documentation.Join_Lines (VSS.Strings.LF, False));
-
-            else
-               LSIF.Serializer.Write_Hover_Result_Vertex
-                 (Hover_Result_Id,
-                  Code_Snippet.Join_Lines (VSS.Strings.LF, False));
-            end if;
-
+            LSIF.Serializer.Write_Hover_Result_Vertex
+              (Hover_Result_Id,
+               Code_Snippet.Join_Lines (VSS.Strings.LF, False),
+               Documentation.Join_Lines (VSS.Strings.LF, False));
             LSIF.Serializer.Write_Text_Document_Hover_Edge
               (Info.Result_Set_Id, Hover_Result_Id);
 

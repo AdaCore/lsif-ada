@@ -43,8 +43,9 @@ package LSIF.Serializer is
       URI        : VSS.Strings.Virtual_String);
 
    procedure Write_Hover_Result_Vertex
-     (Identifier : Interfaces.Integer_64;
-      Markdown   : VSS.Strings.Virtual_String);
+     (Identifier    : Interfaces.Integer_64;
+      Code_Snippet  : VSS.Strings.Virtual_String;
+      Documentation : VSS.Strings.Virtual_String);
 
    procedure Write_Item_Definitions_Edge
      (Out_Vertex  : Interfaces.Integer_64;

@@ -110,8 +110,9 @@ package body LSIF.Serializer is
    -------------------------------
 
    procedure Write_Hover_Result_Vertex
-     (Identifier : Interfaces.Integer_64;
-      Markdown   : VSS.Strings.Virtual_String) is
+     (Identifier    : Interfaces.Integer_64;
+      Code_Snippet  : VSS.Strings.Virtual_String;
+      Documentation : VSS.Strings.Virtual_String) is
    begin
       Writer.Start_Document (Success);
       Writer.Start_Object (Success);
@@ -127,7 +128,13 @@ package body LSIF.Serializer is
       Writer.Start_Array (Success);
       Writer.Start_Object (Success);
       Writer.Key_Name ("value", Success);
-      Writer.String_Value (Markdown, Success);
+      Writer.String_Value (Code_Snippet, Success);
+      Writer.Key_Name ("language", Success);
+      Writer.String_Value ("ada", Success);
+      Writer.End_Object (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("value", Success);
+      Writer.String_Value (Documentation, Success);
       Writer.Key_Name ("kind", Success);
       Writer.String_Value ("markdown", Success);
       Writer.End_Object (Success);
