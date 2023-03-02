@@ -105,6 +105,83 @@ package body LSIF.Serializer is
       Output.New_Line (Success);
    end Write_Document_Vertex;
 
+   ---------------------------------
+   -- Write_Item_Definitions_Edge --
+   ---------------------------------
+
+   procedure Write_Item_Definitions_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertices : Identifier_Array;
+      Document    : Interfaces.Integer_64) is
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Allocate_Identifier, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("edge", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("item", Success);
+      Writer.Key_Name ("outV", Success);
+      Writer.Integer_Value (Out_Vertex, Success);
+      Writer.Key_Name ("inVs", Success);
+      Writer.Start_Array (Success);
+
+      for Identifier of In_Vertices loop
+         Writer.Integer_Value (Identifier);
+      end loop;
+
+      Writer.End_Array (Success);
+
+      Writer.Key_Name ("document", Success);
+      Writer.Integer_Value (Document, Success);
+      Writer.Key_Name ("property", Success);
+      Writer.String_Value ("definitions", Success);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+   end Write_Item_Definitions_Edge;
+
+   -----------------------------------
+   -- Write_Reference_Result_Vertex --
+   -----------------------------------
+
+   procedure Write_Reference_Result_Vertex
+     (Identifier : Interfaces.Integer_64) is
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Identifier, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("vertex", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("referenceResult", Success);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+   end Write_Reference_Result_Vertex;
+
+   -----------------------------
+   -- Write_Result_Set_Vertex --
+   -----------------------------
+
+   procedure Write_Result_Set_Vertex
+     (Identifier : Interfaces.Integer_64) is
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Identifier, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("vertex", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("resultSet", Success);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+   end Write_Result_Set_Vertex;
+
    ----------------------------
    -- Write_Meta_Data_Vertex --
    ----------------------------
@@ -135,6 +212,31 @@ package body LSIF.Serializer is
       Writer.End_Document (Success);
       Output.New_Line (Success);
    end Write_Meta_Data_Vertex;
+
+   ---------------------
+   -- Write_Next_Edge --
+   ---------------------
+
+   procedure Write_Next_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertex   : Interfaces.Integer_64) is
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Allocate_Identifier, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("edge", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("next", Success);
+      Writer.Key_Name ("outV", Success);
+      Writer.Integer_Value (Out_Vertex, Success);
+      Writer.Key_Name ("inV", Success);
+      Writer.Integer_Value (In_Vertex);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+   end Write_Next_Edge;
 
    ------------------------
    -- Write_Range_Vertex --
@@ -182,5 +284,30 @@ package body LSIF.Serializer is
       Writer.End_Document (Success);
       Output.New_Line (Success);
    end Write_Range_Vertex;
+
+   -----------------------------------------
+   -- Write_Text_Document_References_Edge --
+   -----------------------------------------
+
+   procedure Write_Text_Document_References_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertex   : Interfaces.Integer_64) is
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Allocate_Identifier, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("edge", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("textDocument/references", Success);
+      Writer.Key_Name ("outV", Success);
+      Writer.Integer_Value (Out_Vertex, Success);
+      Writer.Key_Name ("inV", Success);
+      Writer.Integer_Value (In_Vertex);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+   end Write_Text_Document_References_Edge;
 
 end LSIF.Serializer;

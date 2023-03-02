@@ -106,7 +106,8 @@ procedure LSIF.Driver is
           ((Last_Location.Start_Line, Last_Location.Start_Column));
       Parent_Node    : Libadalang.Analysis.Ada_Node :=
         Id_Node.Parent;
-      Decl           : Libadalang.Analysis.Defining_Name;
+      Ref_Decl       : Libadalang.Analysis.Defining_Name;
+      Self_Decl      : Libadalang.Analysis.Defining_Name;
 
    begin
       if Id_Node.Kind = Ada_Aliased_Present
@@ -128,31 +129,58 @@ procedure LSIF.Driver is
          --     & " "
          --     & Libadalang.Slocs.Image (Last_Location));
 
-      --  if Parent_Node.Kind = Ada_Defining_Name
-      --    or else (Parent_Node.Kind = Ada_Dotted_Name and then Parent_Node.Parent.Kind = Ada_Defining_Name)
-      --  then
-      --     --  Definition
-      --
-      --     null;
-      --
-      --  else
-         begin
-            Decl := Id_Node.P_Gnat_Xref;
+      --  Lookup for declaration
 
-         exception
-            when Libadalang.Common.Property_Error =>
-               Decl := Libadalang.Analysis.No_Defining_Name;
+      begin
+         Ref_Decl := Id_Node.P_Gnat_Xref;
 
-               Ada.Text_IO.Put
-                 (Libadalang.Analysis.Image (Id_Node)
-                  & " "
-                  & Libadalang.Analysis.Image (Parent_Node));
-               Ada.Text_IO.New_Line;
+      exception
+         when Libadalang.Common.Property_Error =>
+            Ref_Decl := Libadalang.Analysis.No_Defining_Name;
 
-               raise;
-         end;
+            Ada.Text_IO.Put
+              (Libadalang.Analysis.Image (Id_Node)
+               & " "
+               & Libadalang.Analysis.Image (Parent_Node));
+            Ada.Text_IO.New_Line;
 
-         if Decl.Is_Null then
+            raise;
+      end;
+
+      if Parent_Node.Kind = Ada_Defining_Name then
+         Self_Decl := Parent_Node.As_Defining_Name;
+
+      elsif Parent_Node.Kind = Ada_Dotted_Name
+              and then Parent_Node.Parent.Kind = Ada_Defining_Name
+      then
+         Self_Decl := Parent_Node.Parent.As_Defining_Name;
+      end if;
+
+      if Ref_Decl.Is_Null then
+         --  In some cases Ref_Decl is null for "primary" declaration of the
+         --  entity.
+
+         Ref_Decl := Self_Decl;
+      end if;
+
+      --  Return when there is no declaration found
+
+      if Ref_Decl.Is_Null then
+         --  if not Self_Decl.Is_Null then
+         --     Ada.Text_IO.Put_Line
+         --       (Ada.Text_IO.Standard_Error,
+         --        "error: unresolved declaration: "
+         --        & Libadalang.Analysis.Image (Id_Node)
+         --        & " "
+         --        & Libadalang.Analysis.Image (Parent_Node));
+         --
+         --     --  raise Program_Error;
+         --     Ref_Decl := Self_Decl;
+         --
+         --  else
+         --     return;
+         --  end if;
+
             --  Ada.Text_IO.Put_Line
             --    (Ada.Text_IO.Standard_Error,
             --     "error: unresolved declaration: "
@@ -161,12 +189,14 @@ procedure LSIF.Driver is
             --     & Libadalang.Analysis.Image (Parent_Node));
 
             --  raise Program_Error;
-            return;
-         end if;
+         return;
+      end if;
 
-         if not Files.Contains
-                  (GNATCOLL.VFS.Create_From_UTF8 (Decl.Unit.Get_Filename))
-         then
+      --  Return when declaration doesn't belongs to project's files.
+
+      if not Files.Contains
+               (GNATCOLL.VFS.Create_From_UTF8 (Ref_Decl.Unit.Get_Filename))
+      then
             --  Ada.Text_IO.Put_Line
             --    (Ada.Text_IO.Standard_Error,
             --     "error: external reference: "
@@ -176,20 +206,26 @@ procedure LSIF.Driver is
             --     & "  =>  "
             --     & Libadalang.Analysis.Image (Decl)
             --    );
-            return;
-         end if;
+         return;
+      end if;
 
-         declare
-            Vertex : Range_Information :=
-              (Id   => LSIF.Serializer.Allocate_Identifier,
-               Sloc =>
-                 (Start_Line   => First_Location.Start_Line,
-                  Start_Column => First_Location.Start_Column,
-                  End_Line     => Last_Location.End_Line,
-                  End_Column   => Last_Location.End_Column));
+      declare
+         use type Libadalang.Analysis.Defining_Name;
 
-         begin
-            File.Ranges.Append (Vertex);
+         Vertex : Range_Information :=
+           (Id   => LSIF.Serializer.Allocate_Identifier,
+            Sloc =>
+              (Start_Line   => First_Location.Start_Line,
+               Start_Column => First_Location.Start_Column,
+               End_Line     => Last_Location.End_Line,
+               End_Column   => Last_Location.End_Column));
+         Result_Set_Id       : Interfaces.Integer_64 := 0;
+         Reference_Result_Id : Interfaces.Integer_64 := 0;
+
+      begin
+         File.Ranges.Append (Vertex);
+
+         --  Generate "range" vertex
 
          LSIF.Serializer.Write_Range_Vertex
            (Vertex.Id,
@@ -199,7 +235,23 @@ procedure LSIF.Driver is
             "",
             Vertex.Sloc.End_Line,
             Vertex.Sloc.End_Column);
-         end;
+
+         if Ref_Decl = Self_Decl then
+            Result_Set_Id := LSIF.Serializer.Allocate_Identifier;
+
+            LSIF.Serializer.Write_Result_Set_Vertex (Result_Set_Id);
+            LSIF.Serializer.Write_Next_Edge (Vertex.Id, Result_Set_Id);
+
+            Reference_Result_Id := LSIF.Serializer.Allocate_Identifier;
+
+            LSIF.Serializer.Write_Reference_Result_Vertex
+              (Reference_Result_Id);
+            LSIF.Serializer.Write_Text_Document_References_Edge
+              (Result_Set_Id, Reference_Result_Id);
+            LSIF.Serializer.Write_Item_Definitions_Edge
+              (Reference_Result_Id, (1 => Vertex.Id), File.Id);
+         end if;
+      end;
 
          --  Ada.Text_IO.Put_Line
          --    (Libadalang.Slocs.Image (First_Location)

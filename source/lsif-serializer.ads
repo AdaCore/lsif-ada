@@ -37,8 +37,17 @@ package LSIF.Serializer is
      (Identifier : Interfaces.Integer_64;
       URI        : VSS.Strings.Virtual_String);
 
+   procedure Write_Item_Definitions_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertices : Identifier_Array;
+      Document    : Interfaces.Integer_64);
+
    procedure Write_Meta_Data_Vertex
      (Project_Root : VSS.Strings.Virtual_String);
+
+   procedure Write_Next_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertex   : Interfaces.Integer_64);
 
    procedure Write_Range_Vertex
      (Identifier   : Interfaces.Integer_64;
@@ -48,5 +57,15 @@ package LSIF.Serializer is
       End_Text     : Libadalang.Text.Text_Type;
       End_Line     : Libadalang.Slocs.Line_Number;
       End_Column   : Libadalang.Slocs.Column_Number);
+
+   procedure Write_Reference_Result_Vertex
+     (Identifier : Interfaces.Integer_64);
+
+   procedure Write_Result_Set_Vertex
+     (Identifier : Interfaces.Integer_64);
+
+   procedure Write_Text_Document_References_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertex   : Interfaces.Integer_64);
 
 end LSIF.Serializer;
