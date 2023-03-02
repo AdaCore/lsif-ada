@@ -62,16 +62,6 @@ procedure LSIF.Driver is
         File_Information_Access,
         GNATCOLL.VFS.Full_Name_Hash,
         GNATCOLL.VFS."=");
-       --  (GPR2.Path_Name.Object,
-        --  File_Information_Access,
-        --  GPR2.Path_Name.Hash,
-        --  GPR2.Path_Name."=");
-   --  package File_Id_Maps is
-   --    new Ada.Containers.Hashed_Maps
-   --      (GPR2.Path_Name.Object,
-   --       Interfaces.Integer_64,
-   --       GPR2.Path_Name.Hash,
-   --       GPR2.Path_Name."=");
 
    type Defining_Name_Information is record
       Result_Set_Id       : Interfaces.Integer_64;
@@ -94,7 +84,6 @@ procedure LSIF.Driver is
    Project_Context : GPR2.Context.Object;
    LAL_Context     : Libadalang.Analysis.Analysis_Context;
 
-   --  File_Id         : File_Id_Maps.Map;
    Files : File_Maps.Map;
    Defs  : Defining_Name_Maps.Map;
 
@@ -189,29 +178,13 @@ procedure LSIF.Driver is
       --  Return when there is no declaration found
 
       if Ref_Decl.Is_Null then
-         --  if not Self_Decl.Is_Null then
-         --     Ada.Text_IO.Put_Line
-         --       (Ada.Text_IO.Standard_Error,
-         --        "error: unresolved declaration: "
-         --        & Libadalang.Analysis.Image (Id_Node)
-         --        & " "
-         --        & Libadalang.Analysis.Image (Parent_Node));
-         --
-         --     --  raise Program_Error;
-         --     Ref_Decl := Self_Decl;
-         --
-         --  else
-         --     return;
-         --  end if;
+         --  Ada.Text_IO.Put_Line
+         --    (Ada.Text_IO.Standard_Error,
+         --     "error: unresolved declaration: "
+         --     & Libadalang.Analysis.Image (Id_Node)
+         --     & " "
+         --     & Libadalang.Analysis.Image (Parent_Node));
 
-            --  Ada.Text_IO.Put_Line
-            --    (Ada.Text_IO.Standard_Error,
-            --     "error: unresolved declaration: "
-            --     & Libadalang.Analysis.Image (Id_Node)
-            --     & " "
-            --     & Libadalang.Analysis.Image (Parent_Node));
-
-            --  raise Program_Error;
          return;
       end if;
 
@@ -220,15 +193,16 @@ procedure LSIF.Driver is
       if not Files.Contains
                (GNATCOLL.VFS.Create_From_UTF8 (Ref_Decl.Unit.Get_Filename))
       then
-            --  Ada.Text_IO.Put_Line
-            --    (Ada.Text_IO.Standard_Error,
-            --     "error: external reference: "
-            --     & Libadalang.Analysis.Image (Id_Node)
-            --     & " "
-            --     & Libadalang.Analysis.Image (Parent_Node)
-            --     & "  =>  "
-            --     & Libadalang.Analysis.Image (Decl)
-            --    );
+         --  Ada.Text_IO.Put_Line
+         --    (Ada.Text_IO.Standard_Error,
+         --     "error: external reference: "
+         --     & Libadalang.Analysis.Image (Id_Node)
+         --     & " "
+         --     & Libadalang.Analysis.Image (Parent_Node)
+         --     & "  =>  "
+         --     & Libadalang.Analysis.Image (Decl)
+         --    );
+
          return;
       end if;
 
@@ -298,25 +272,6 @@ procedure LSIF.Driver is
             Defs.Insert (Vertex.Definition, Info);
          end if;
       end;
-
-         --  Ada.Text_IO.Put_Line
-         --    (Libadalang.Slocs.Image (First_Location)
-         --     & " "
-         --     & Libadalang.Slocs.Image (Last_Location));
-         --
-         --  Ada.Text_IO.Put
-         --    (Libadalang.Analysis.Image (Id_Node)
-         --     & " "
-         --     & Libadalang.Analysis.Image (Parent_Node));
-         --
-         --  if Parent_Node.Kind = Ada_Dotted_Name then
-         --     Ada.Text_IO.Put (" " & Libadalang.Analysis.Image (Parent_Node.Parent));
-         --  end if;
-         --
-         --  Ada.Text_IO.Put ("  =>  " & Libadalang.Analysis.Image (Decl));
-         --  Ada.Text_IO.Put ("  " & Decl.Unit.Get_Filename);
-         --  Ada.Text_IO.New_Line;
-      --  end if;
    end Analyze_Range;
 
    ------------
@@ -327,14 +282,10 @@ procedure LSIF.Driver is
      (File : in out File_Information;
       Node : Libadalang.Analysis.Ada_Node'Class)
    is
-
       use type Libadalang.Common.Token_Reference;
       use all type Libadalang.Common.Token_Kind;
 
-      --  type States is (None, Identifier);
-
       Token : Libadalang.Common.Token_Reference := Node.Token_Start;
-      --  State : States := None;
       First : Libadalang.Common.Token_Reference;
       Last  : Libadalang.Common.Token_Reference;
 
@@ -348,18 +299,10 @@ procedure LSIF.Driver is
 
       loop
          exit when Token = Libadalang.Common.No_Token;
-         --  exit when Token = Node.Token_End;
 
          --  Ada.Text_IO.Put_Line (Libadalang.Common.Image (Token));
 
          case Libadalang.Common.Kind (Libadalang.Common.Data (Token)) is
-
-            --  when Ada_With | Ada_Whitespace | Ada_Procedure
-            --     =>
-            --     null;
-            --
-            --  when Ada_Semicolon | Ada_Comment =>
-
             when Ada_Identifier =>
                First := Token;
                Last  := Token;
@@ -401,12 +344,6 @@ procedure LSIF.Driver is
                end loop;
 
                Analyze_Range (File, First, Last);
-               --  if State = None then
-               --     State := Identifier;
-               --     First := Token;
-               --  end if;
-               --
-               --  Last  := Token;
 
             when Ada_Dot =>
                First := Token;
@@ -454,13 +391,7 @@ procedure LSIF.Driver is
                end loop;
 
                if First /= Last then
-               --  if State = None then
                   Analyze_Range (File, First, Last);
-
-                  --  raise Program_Error;
---  --                    null;
---                    State := Identifier;
---                    First := Token;
 
                else
                   raise Program_Error;
@@ -470,51 +401,48 @@ procedure LSIF.Driver is
                --  Operator's names use string syntax for declarations and
                --  may use string syntax for references.
 
-               --  if State = None then
-                  declare
-                     use all type Libadalang.Common.Ada_Node_Kind_Type;
+               declare
+                  use all type Libadalang.Common.Ada_Node_Kind_Type;
 
-                     Last_Sloc  : Libadalang.Slocs.Source_Location_Range :=
-                       Libadalang.Common.Sloc_Range
-                         (Libadalang.Common.Data (Token));
-                     Id_Node    : Libadalang.Analysis.Ada_Node :=
-                       Node.Lookup
-                         ((Last_Sloc.Start_Line, Last_Sloc.Start_Column));
-                     Parent_Node : Libadalang.Analysis.Ada_Node :=
+                  Last_Sloc   : Libadalang.Slocs.Source_Location_Range :=
+                    Libadalang.Common.Sloc_Range
+                      (Libadalang.Common.Data (Token));
+                  Id_Node     : Libadalang.Analysis.Ada_Node :=
+                    Node.Lookup
+                      ((Last_Sloc.Start_Line, Last_Sloc.Start_Column));
+                  Parent_Node : Libadalang.Analysis.Ada_Node :=
                     Id_Node.Parent;
-                  begin
-                     if Parent_Node.Kind
-                          not in Ada_Concat_Op | Ada_Concat_Operand
-                                   | Ada_Param_Assoc | Ada_Paren_Expr
-                     then
+
+               begin
+                  if Parent_Node.Kind
+                       not in Ada_Concat_Op | Ada_Concat_Operand
+                                | Ada_Param_Assoc | Ada_Paren_Expr
+                  then
                      Ada.Text_IO.Put_Line ("String:");
 
-                        Libadalang.Analysis.Print (Id_Node);
-                        Libadalang.Analysis.Print (Parent_Node);
-                        raise Program_Error;
-                  end if;
-                  Analyze_Range (File, Token, Token);
-                  end;
+                     Libadalang.Analysis.Print (Id_Node);
+                     Libadalang.Analysis.Print (Parent_Node);
 
-               --  else
-               --     Last := Token;
-               --     --  raise Program_Error;
-               --  end if;
+                     raise Program_Error;
+                  end if;
+
+                  Analyze_Range (File, Token, Token);
+               end;
 
             when Ada_Equal | Ada_Notequal | Ada_Amp | Ada_Not | Ada_And
                | Ada_Minus | Ada_Plus | Ada_Or
                =>
-                  declare
-                     use all type Libadalang.Common.Ada_Node_Kind_Type;
-
-                     --  Last_Sloc  : Libadalang.Slocs.Source_Location_Range :=
-                     --    Libadalang.Common.Sloc_Range
-                     --      (Libadalang.Common.Data (Token));
-                     --  Id_Node    : Libadalang.Analysis.Ada_Node :=
-                     --    Node.Lookup
-                     --      ((Last_Sloc.Start_Line, Last_Sloc.Start_Column));
-                     --  Parent_Node : Libadalang.Analysis.Ada_Node :=
-                    --  Id_Node.Parent;
+               declare
+                  --  use all type Libadalang.Common.Ada_Node_Kind_Type;
+                  --
+                  --  Last_Sloc  : Libadalang.Slocs.Source_Location_Range :=
+                  --    Libadalang.Common.Sloc_Range
+                  --      (Libadalang.Common.Data (Token));
+                  --  Id_Node    : Libadalang.Analysis.Ada_Node :=
+                  --    Node.Lookup
+                  --      ((Last_Sloc.Start_Line, Last_Sloc.Start_Column));
+                  --  Parent_Node : Libadalang.Analysis.Ada_Node :=
+                  --  Id_Node.Parent;
                begin
                   --  Ada.Text_IO.Put_Line
                   --    ("Operator: "
@@ -551,8 +479,6 @@ procedure LSIF.Driver is
 
                   Analyze_Range (File, Token, Token);
                end;
-               --  Ada.Text_IO
-               --  raise Program_Error;
 
             when Ada_With | Ada_Whitespace | Ada_Semicolon | Ada_Comment
                | Ada_Procedure | Ada_Is | Ada_Use | Ada_Type | Ada_Record
@@ -567,75 +493,6 @@ procedure LSIF.Driver is
                | Ada_Range | Ada_Function | Ada_Body | Ada_Do
                =>
                null;
-               --  if State = Identifier then
-               --     raise Program_Error;
-               --     State := None;
-               --
-               --     declare
-               --        use all type Libadalang.Common.Ada_Node_Kind_Type;
-               --
-               --        First_Sloc : Libadalang.Slocs.Source_Location_Range :=
-               --          Libadalang.Common.Sloc_Range
-               --            (Libadalang.Common.Data (First));
-               --        Last_Sloc  : Libadalang.Slocs.Source_Location_Range :=
-               --          Libadalang.Common.Sloc_Range
-               --            (Libadalang.Common.Data (Last));
-               --        Id_Node    : Libadalang.Analysis.Ada_Node :=
-               --          Node.Lookup
-               --            ((Last_Sloc.Start_Line, Last_Sloc.Start_Column));
-               --        Parent_Node : Libadalang.Analysis.Ada_Node :=
-               --          Id_Node.Parent;
-               --
-               --     begin
-               --     Ada.Text_IO.Put_Line
-               --       ("Identifier found at"
-               --        & Libadalang.Slocs.Line_Number'Image (First_Sloc.Start_Line)
-               --        & Libadalang.Slocs.Column_Number'Image (First_Sloc.Start_Column)
-               --        & Libadalang.Slocs.Line_Number'Image (Last_Sloc.End_Line)
-               --        & Libadalang.Slocs.Column_Number'Image (Last_Sloc.End_Column)
-               --        & " "
-               --        & Libadalang.Common.Image (First)
-               --        & " "
-               --        & Libadalang.Common.Image (Last));
-               --
-               --        --  Ada.Text_IO.Put_Line
-               --        --    & Libadalang.Slocs.Line_Number'Image (First_Sloc.Start_Line)
-               --        --     & Libadalang.Slocs.Column_Number'Image (First_Sloc.Start_Column)
-               --        --     & Libadalang.Slocs.Line_Number'Image (Last_Sloc.End_Line)
-               --        --     & Libadalang.Slocs.Column_Number'Image (Last_Sloc.End_Column));
-               --
-               --        if Parent_Node.Kind = Ada_Dotted_Name then
-               --           --  Resolve dotted name to parent node
-               --
-               --           Parent_Node := Parent_Node.Parent;
-               --        end if;
-               --
-               --        --  if Parent_Node.Kind = Ada_Defining_Name then
-               --        if Id_Node.Kind = Ada_Aliased_Present then
-               --           Ada.Text_IO.Put_Line
-               --             ("   Not an identifier (""aliased"" keyword)");
-               --
-               --        elsif Id_Node.Kind /= Ada_Identifier then
-               --           Libadalang.Analysis.Print (Id_Node);
-               --          --  (Node.Lookup
-               --          --     ((Last_Sloc.Start_Line, Last_Sloc.Start_Column)));
-               --           Ada.Text_IO.Put_Line
-               --             (Libadalang.Analysis.Image (Id_Node));
-               --          --     (Node.Lookup
-               --          --          ((Last_Sloc.Start_Line, Last_Sloc.Start_Column))));
-               --           Libadalang.Analysis.Print (Parent_Node);
-               --
-               --        elsif Id_Node.Kind = Ada_Identifier
-               --          and then Id_Node.Parent.Kind = Ada_Attribute_Ref
-               --        then
-               --           Ada.Text_IO.Put_Line
-               --             ("   Not an identifier (attribute reference)");
-               --        --  else
-               --           --  Libadalang.Analysis.Print (Id_Node);
-               --           --  Libadalang.Analysis.Print (Id_Node.Parent);
-               --        end if;
-               --     end;
-               --  end if;
 
             when others =>
                Ada.Text_IO.Put_Line (Libadalang.Common.Image (Token));
@@ -708,37 +565,37 @@ procedure LSIF.Driver is
 begin
    --  Load project file
 
-      begin
-         Project_Tree.Load_Autoconf
-           (GPR2.Path_Name.Create_File
-              (GPR2.Filename_Type'("gnat/lsif.gpr")),
+   begin
+      Project_Tree.Load_Autoconf
+        (GPR2.Path_Name.Create_File
+           (GPR2.Filename_Type'("gnat/lsif.gpr")),
                    --  (VSS.Strings.Conversions.To_UTF_8_String
                    --       (GNATdoc.Command_Line.Project_File))),
-            Project_Context);
+         Project_Context);
 
-         Project_Tree.Update_Sources (With_Runtime => True);
+      Project_Tree.Update_Sources (With_Runtime => True);
 
-      exception
-         when GPR2.Project_Error =>
-            for Message of Project_Tree.Log_Messages.all loop
-               Ada.Text_IO.Put_Line
-                 (Ada.Text_IO.Standard_Error, Message.Format);
-            end loop;
+   exception
+      when GPR2.Project_Error =>
+         for Message of Project_Tree.Log_Messages.all loop
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error, Message.Format);
+         end loop;
 
-            raise;
-      end;
+         raise;
+   end;
 
-      --  Create Libadalang context and unit provider
+   --  Create Libadalang context and unit provider
 
       --  Event_Handler :=
       --    Libadalang.Analysis.Create_Event_Handler_Reference
       --      (Missing_File_Event_Handler'(null record));
 
-      LAL_Context :=
-        Libadalang.Analysis.Create_Context
-          (Unit_Provider =>
-             Libadalang.Project_Provider.Create_Project_Unit_Provider
-               (Project_Tree));
+   LAL_Context :=
+     Libadalang.Analysis.Create_Context
+       (Unit_Provider =>
+          Libadalang.Project_Provider.Create_Project_Unit_Provider
+            (Project_Tree));
            --  Event_Handler => Event_Handler);
       --  LAL_Context.Discard_Errors_In_Populate_Lexical_Env (False);
 
