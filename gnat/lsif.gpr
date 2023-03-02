@@ -16,8 +16,8 @@
 ------------------------------------------------------------------------------
 
 with "gpr2";
---  with "libgnatdoc";
 with "libadalang";
+with "libgnatdoc";
 with "vss_json";
 with "vss_text";
 

@@ -28,7 +28,10 @@ with Libadalang.Analysis;
 with Libadalang.Common;
 with Libadalang.Project_Provider;
 
+with GNATdoc.Comments.Helpers;
+
 with VSS.Strings.Conversions;
+with VSS.String_Vectors;
 
 with LSIF.Serializer;
 
@@ -242,6 +245,8 @@ procedure LSIF.Driver is
             Definition => Ref_Decl);
          Hover_Result_Id : Interfaces.Integer_64 := 0;
          Info            : Defining_Name_Information;
+         Code_Snippet    : VSS.String_Vectors.Virtual_String_Vector;
+         Documentation   : VSS.String_Vectors.Virtual_String_Vector;
 
       begin
          File.Ranges.Append (Vertex);
@@ -258,16 +263,35 @@ procedure LSIF.Driver is
             Vertex.Sloc.End_Column);
 
          if Ref_Decl = Self_Decl then
+            --  "resultSet"
+
             Info.Result_Set_Id := LSIF.Serializer.Allocate_Identifier;
 
             LSIF.Serializer.Write_Result_Set_Vertex (Info.Result_Set_Id);
             LSIF.Serializer.Write_Next_Edge (Vertex.Id, Info.Result_Set_Id);
 
+            --  "textDocument/hover"
+
             Hover_Result_Id := LSIF.Serializer.Allocate_Identifier;
 
-            LSIF.Serializer.Write_Hover_Result_Vertex (Hover_Result_Id);
+            GNATdoc.Comments.Helpers.Get_Plain_Text_Documentation
+              (Ref_Decl, (others => <>), Code_Snippet, Documentation);
+
+            if not Documentation.Is_Empty then
+               LSIF.Serializer.Write_Hover_Result_Vertex
+                 (Hover_Result_Id,
+                  Documentation.Join_Lines (VSS.Strings.LF, False));
+
+            else
+               LSIF.Serializer.Write_Hover_Result_Vertex
+                 (Hover_Result_Id,
+                  Code_Snippet.Join_Lines (VSS.Strings.LF, False));
+            end if;
+
             LSIF.Serializer.Write_Text_Document_Hover_Edge
               (Info.Result_Set_Id, Hover_Result_Id);
+
+            --  "textDocument/references": "definitions"
 
             Info.Reference_Result_Id := LSIF.Serializer.Allocate_Identifier;
 
@@ -670,6 +694,7 @@ procedure LSIF.Driver is
 
             LSIF.Serializer.Write_Next_Edge
               (R.Id, Defs (R.Definition).Result_Set_Id);
+            --  XXX Is this edge necessary for GitLab?
 
          else
             Ada.Text_IO.Put_Line
