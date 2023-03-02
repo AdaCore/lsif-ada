@@ -396,6 +396,9 @@ procedure LSIF.Driver is
                Last  := Token;
 
                --  GitLab: continuation of the prefixed name
+               --
+               --  XXX Doesn't check when it starts suffix after close
+               --  parenthesis.
 
                loop
                   Token := Libadalang.Common.Next (Token);
@@ -415,8 +418,10 @@ procedure LSIF.Driver is
                      --     Last := Token;
                      --
                      when
-                          --  Ada_Whitespace | Ada_Comma | Ada_Par_Close
-                          Ada_Semicolon
+                          --  Ada_Whitespace
+                          Ada_Comma
+                        | Ada_Par_Close
+                        | Ada_Semicolon
                         --  | Ada_Tick | Ada_All
                         =>
                         exit;
