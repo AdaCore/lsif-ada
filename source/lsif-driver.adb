@@ -109,11 +109,14 @@ procedure LSIF.Driver is
       Last  : Libadalang.Common.Token_Reference)
    is
       use all type Libadalang.Common.Ada_Node_Kind_Type;
+      use all type Libadalang.Common.Token_Kind;
 
       First_Location : Libadalang.Slocs.Source_Location_Range :=
         Libadalang.Common.Sloc_Range (Libadalang.Common.Data (First));
       Last_Location  : Libadalang.Slocs.Source_Location_Range :=
         Libadalang.Common.Sloc_Range (Libadalang.Common.Data (Last));
+      Last_Kind      : Libadalang.Common.Token_Kind :=
+        Libadalang.Common.Kind (Libadalang.Common.Data (Last));
       Id_Node        : Libadalang.Analysis.Ada_Node :=
         File.Unit.Root.Lookup
           ((Last_Location.Start_Line, Last_Location.Start_Column));
@@ -123,14 +126,35 @@ procedure LSIF.Driver is
       Self_Decl      : Libadalang.Analysis.Defining_Name;
 
    begin
-      if Id_Node.Kind = Ada_Aliased_Present
-        or else Id_Node.Kind = Ada_Not_Null_Present
+      if Id_Node.Kind = Ada_Abstract_Present
+        or else Id_Node.Kind = Ada_Abstract_Subp_Decl
+        or else Id_Node.Kind = Ada_Aliased_Present
+        or else Id_Node.Kind = Ada_Interface_Type_Def
+        or else Id_Node.Kind = Ada_Overriding_Overriding
+        or else Id_Node.Kind = Ada_Overriding_Not_Overriding
+        or else Id_Node.Kind = Ada_Tagged_Present
+        or else Id_Node.Kind = Ada_Incomplete_Tagged_Type_Decl
+        or else (Last_Kind = Ada_And and Id_Node.Kind = Ada_Derived_Type_Def)
+        or else (Last_Kind = Ada_Mod and Id_Node.Kind = Ada_Mod_Int_Type_Def)
+        or else (Last_Kind = Ada_Not and Id_Node.Kind = Ada_Not_Null_Present)
+        or else (Last_Kind = Ada_Not
+                   and Id_Node.Kind = Ada_Overriding_Not_Overriding)
         or else Parent_Node.Kind = Ada_Attribute_Ref
         or else Parent_Node.Kind = Ada_Pragma_Node
       then
          --  Nothing to do:
+         --   - reserved word "abstract"
+         --   - reserved word "abstract"
          --   - reserved word "aliased"
+         --   - reserved word "interface"
+         --   - reserved word "overriding"
+         --   - reserved word "overriding" in "not overriding"
+         --   - reserved word "tagged"
+         --   - reserved word "tagged"
+         --   - "and" in derived type declaration
+         --   - "mod" in modular type declaration
          --   - "not" in "not null"
+         --   - "not" in "not overriding"
          --   - attribute reference "'Attribute"
          --   - pragma
 
@@ -152,7 +176,9 @@ procedure LSIF.Driver is
             Ref_Decl := Libadalang.Analysis.No_Defining_Name;
 
             Ada.Text_IO.Put
-              (Libadalang.Analysis.Image (Id_Node)
+              (Libadalang.Common.Image (Last)
+               & " "
+               & Libadalang.Analysis.Image (Id_Node)
                & " "
                & Libadalang.Analysis.Image (Parent_Node));
             Ada.Text_IO.New_Line;
@@ -330,7 +356,7 @@ procedure LSIF.Driver is
                         Last := Token;
 
                      when Ada_Whitespace | Ada_Comma | Ada_Par_Close
-                        | Ada_Semicolon | Ada_Tick | Ada_All
+                        | Ada_Semicolon | Ada_Tick | Ada_All | Ada_Label_End
                         =>
                         exit;
 
@@ -372,12 +398,8 @@ procedure LSIF.Driver is
                      --
                      --     Last := Token;
                      --
-                     when
-                          --  Ada_Whitespace
-                          Ada_Comma
-                        | Ada_Par_Close
-                        | Ada_Semicolon
-                        --  | Ada_Tick | Ada_All
+                     when Ada_Whitespace | Ada_Comma | Ada_Par_Close
+                        | Ada_Semicolon | Ada_Tick | Ada_All
                         =>
                         exit;
 
@@ -393,9 +415,6 @@ procedure LSIF.Driver is
 
                if First /= Last then
                   Analyze_Range (File, First, Last);
-
-               else
-                  raise Program_Error;
                end if;
 
             when Ada_String =>
@@ -418,6 +437,12 @@ procedure LSIF.Driver is
                   if Parent_Node.Kind
                        not in Ada_Concat_Op | Ada_Concat_Operand
                                 | Ada_Param_Assoc | Ada_Paren_Expr
+                                | Ada_Aggregate_Assoc
+                                | Ada_Pragma_Argument_Assoc | Ada_Raise_Stmt
+                                | Ada_Return_Stmt | Ada_Defining_Name
+                                | Ada_End_Name | Ada_Assign_Stmt
+                                | Ada_Aspect_Assoc | Ada_Object_Decl
+                                | Ada_Relation_Op
                   then
                      Ada.Text_IO.Put_Line ("String:");
 
@@ -431,7 +456,8 @@ procedure LSIF.Driver is
                end;
 
             when Ada_Equal | Ada_Notequal | Ada_Amp | Ada_Not | Ada_And
-               | Ada_Minus | Ada_Plus | Ada_Or
+               | Ada_Minus | Ada_Plus | Ada_Or | Ada_Gt | Ada_Divide | Ada_Mod
+               | Ada_Lte | Ada_Mult | Ada_Lt | Ada_Power | Ada_Xor | Ada_Gte
                =>
                declare
                   --  use all type Libadalang.Common.Ada_Node_Kind_Type;
@@ -481,6 +507,9 @@ procedure LSIF.Driver is
                   Analyze_Range (File, Token, Token);
                end;
 
+            when Ada_Char =>
+               Analyze_Range (File, Token, Token);
+
             when Ada_With | Ada_Whitespace | Ada_Semicolon | Ada_Comment
                | Ada_Procedure | Ada_Is | Ada_Use | Ada_Type | Ada_Record
                | Ada_Colon | Ada_End | Ada_Package | Ada_New | Ada_Par_Open
@@ -491,7 +520,9 @@ procedure LSIF.Driver is
                | Ada_Elsif | Ada_Others | Ada_Exception | Ada_For | Ada_Of
                | Ada_Constant | Ada_Doubledot | Ada_Diamond | Ada_Termination
                | Ada_Pragma | Ada_Null | Ada_Return | Ada_Out | Ada_Array
-               | Ada_Range | Ada_Function | Ada_Body | Ada_Do
+               | Ada_Range | Ada_Function | Ada_Body | Ada_Do | Ada_While
+               | Ada_Private | Ada_Renames | Ada_Subtype | Ada_At
+               | Ada_Limited | Ada_Separate | Ada_Goto | Ada_Label_Start
                =>
                null;
 
