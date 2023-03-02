@@ -37,9 +37,9 @@ procedure LSIF.Driver is
    use type VSS.Strings.Virtual_String;
 
    type Range_Information is record
-      Id   : Interfaces.Integer_64;
-      Sloc : Libadalang.Slocs.Source_Location_Range;
-      --  Node : Libadalang.Analysis.Ada_Node;
+      Id         : Interfaces.Integer_64;
+      Sloc       : Libadalang.Slocs.Source_Location_Range;
+      Definition : Libadalang.Analysis.Defining_Name;
    end record;
 
    package Range_Vectors is
@@ -70,16 +70,31 @@ procedure LSIF.Driver is
    --       GPR2.Path_Name.Hash,
    --       GPR2.Path_Name."=");
 
+   function Hash
+     (Node : Libadalang.Analysis.Defining_Name)
+      return Ada.Containers.Hash_Type is (Node.As_Ada_Node.Hash);
+
+   package Defining_Name_Identifier_Maps is
+     new Ada.Containers.Hashed_Maps
+       (Libadalang.Analysis.Defining_Name,
+        Interfaces.Integer_64,
+        Hash,
+        Libadalang.Analysis."=",
+        Interfaces."=");
+
    Project_Tree    : GPR2.Project.Tree.Object;
    Project_Context : GPR2.Context.Object;
    LAL_Context     : Libadalang.Analysis.Analysis_Context;
 
    --  File_Id         : File_Id_Maps.Map;
    Files : File_Maps.Map;
+   Defs  : Defining_Name_Identifier_Maps.Map;
 
    procedure Pass_1
      (File : in out File_Information;
       Node : Libadalang.Analysis.Ada_Node'Class);
+
+   procedure Pass_2 (File : in out File_Information);
 
    procedure Analyze_Range
      (File  : in out File_Information;
@@ -213,12 +228,13 @@ procedure LSIF.Driver is
          use type Libadalang.Analysis.Defining_Name;
 
          Vertex : Range_Information :=
-           (Id   => LSIF.Serializer.Allocate_Identifier,
-            Sloc =>
+           (Id         => LSIF.Serializer.Allocate_Identifier,
+            Sloc       =>
               (Start_Line   => First_Location.Start_Line,
                Start_Column => First_Location.Start_Column,
                End_Line     => Last_Location.End_Line,
-               End_Column   => Last_Location.End_Column));
+               End_Column   => Last_Location.End_Column),
+            Definition => Ref_Decl);
          Result_Set_Id       : Interfaces.Integer_64 := 0;
          Reference_Result_Id : Interfaces.Integer_64 := 0;
 
@@ -250,8 +266,8 @@ procedure LSIF.Driver is
               (Result_Set_Id, Reference_Result_Id);
             LSIF.Serializer.Write_Item_Definitions_Edge
               (Reference_Result_Id, (1 => Vertex.Id), File.Id);
-            LSIF.Serializer.Write_Item_References_Edge
-              (Reference_Result_Id, (1 => Vertex.Id), File.Id);
+
+            Defs.Insert (Vertex.Definition, Reference_Result_Id);
          end if;
       end;
 
@@ -597,6 +613,67 @@ procedure LSIF.Driver is
       end loop;
    end Pass_1;
 
+   ------------
+   -- Pass_2 --
+   ------------
+
+   procedure Pass_2 (File : in out File_Information) is
+
+      package Definitions_Maps is
+        new Ada.Containers.Hashed_Maps
+          (Libadalang.Analysis.Defining_Name,
+           LSIF.Serializer.Identifier_Vectors.Vector,
+           Hash,
+           Libadalang.Analysis."=",
+           LSIF.Serializer.Identifier_Vectors."=");
+
+      References : Definitions_Maps.Map;
+
+   begin
+      for R of File.Ranges loop
+         if References.Contains (R.Definition) then
+            declare
+               Aux : LSIF.Serializer.Identifier_Vectors.Vector :=
+                 References (R.Definition);
+
+            begin
+               Aux.Append (R.Id);
+               References.Replace (R.Definition, Aux);
+            end;
+
+         else
+            declare
+               Aux : LSIF.Serializer.Identifier_Vectors.Vector;
+
+            begin
+               Aux.Append (R.Id);
+               References.Insert (R.Definition, Aux);
+            end;
+         end if;
+      end loop;
+
+      for Cursor in References.Iterate loop
+         declare
+            Definition : Libadalang.Analysis.Defining_Name :=
+              Definitions_Maps.Key (Cursor);
+
+         begin
+            if Defs.Contains (Definition) then
+               LSIF.Serializer.Write_Item_References_Edge
+                 (Defs (Definition),
+                  Definitions_Maps.Element (Cursor),
+                  File.Id);
+
+            else
+               Ada.Text_IO.Put_Line
+                 (Ada.Text_IO.Standard_Error,
+                  "error: unregistered defining name: "
+                  & Libadalang.Analysis.Image (Definition));
+            end if;
+         end;
+      end loop;
+   end Pass_2;
+
 begin
    --  Load project file
 
@@ -668,6 +745,8 @@ begin
       end;
    end loop;
 
+   --  Pass 1: populate range information
+
    for File of Files loop
       Pass_1 (File.all, File.Unit.Root);
 
@@ -683,5 +762,11 @@ begin
 
          LSIF.Serializer.Write_Contains_Edge (File.Id, Range_Vertices);
       end;
+   end loop;
+
+   --  Pass 2: populate cross references information
+
+   for File of Files loop
+      Pass_2 (File.all);
    end loop;
 end LSIF.Driver;

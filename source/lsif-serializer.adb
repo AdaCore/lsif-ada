@@ -179,6 +179,43 @@ package body LSIF.Serializer is
       Output.New_Line (Success);
    end Write_Item_References_Edge;
 
+   --------------------------------
+   -- Write_Item_References_Edge --
+   --------------------------------
+
+   procedure Write_Item_References_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertices : Identifier_Vectors.Vector;
+      Document    : Interfaces.Integer_64) is
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Allocate_Identifier, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("edge", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("item", Success);
+      Writer.Key_Name ("outV", Success);
+      Writer.Integer_Value (Out_Vertex, Success);
+      Writer.Key_Name ("inVs", Success);
+      Writer.Start_Array (Success);
+
+      for Identifier of In_Vertices loop
+         Writer.Integer_Value (Identifier);
+      end loop;
+
+      Writer.End_Array (Success);
+
+      Writer.Key_Name ("document", Success);
+      Writer.Integer_Value (Document, Success);
+      Writer.Key_Name ("property", Success);
+      Writer.String_Value ("references", Success);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+   end Write_Item_References_Edge;
+
    -----------------------------------
    -- Write_Reference_Result_Vertex --
    -----------------------------------

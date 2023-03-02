@@ -15,6 +15,7 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
+with Ada.Containers.Vectors;
 with Interfaces;
 
 with Libadalang;
@@ -26,6 +27,10 @@ package LSIF.Serializer is
    procedure Initialize;
 
    type Identifier_Array is array (Positive range <>) of Interfaces.Integer_64;
+
+   package Identifier_Vectors is
+     new Ada.Containers.Vectors
+       (Positive, Interfaces.Integer_64, Interfaces."=");
 
    function Allocate_Identifier return Interfaces.Integer_64;
 
@@ -45,6 +50,11 @@ package LSIF.Serializer is
    procedure Write_Item_References_Edge
      (Out_Vertex  : Interfaces.Integer_64;
       In_Vertices : Identifier_Array;
+      Document    : Interfaces.Integer_64);
+
+   procedure Write_Item_References_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertices : Identifier_Vectors.Vector;
       Document    : Interfaces.Integer_64);
 
    procedure Write_Meta_Data_Vertex
