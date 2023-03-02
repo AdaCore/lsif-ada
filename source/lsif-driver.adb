@@ -235,6 +235,7 @@ procedure LSIF.Driver is
                End_Line     => Last_Location.End_Line,
                End_Column   => Last_Location.End_Column),
             Definition => Ref_Decl);
+         Hover_Result_Id     : Interfaces.Integer_64 := 0;
          Result_Set_Id       : Interfaces.Integer_64 := 0;
          Reference_Result_Id : Interfaces.Integer_64 := 0;
 
@@ -257,6 +258,12 @@ procedure LSIF.Driver is
 
             LSIF.Serializer.Write_Result_Set_Vertex (Result_Set_Id);
             LSIF.Serializer.Write_Next_Edge (Vertex.Id, Result_Set_Id);
+
+            Hover_Result_Id := LSIF.Serializer.Allocate_Identifier;
+
+            LSIF.Serializer.Write_Hover_Result_Vertex (Hover_Result_Id);
+            LSIF.Serializer.Write_Text_Document_Hover_Edge
+              (Result_Set_Id, Hover_Result_Id);
 
             Reference_Result_Id := LSIF.Serializer.Allocate_Identifier;
 

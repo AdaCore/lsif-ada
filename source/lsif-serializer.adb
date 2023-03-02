@@ -105,6 +105,33 @@ package body LSIF.Serializer is
       Output.New_Line (Success);
    end Write_Document_Vertex;
 
+   -------------------------------
+   -- Write_Hover_Result_Vertex --
+   -------------------------------
+
+   procedure Write_Hover_Result_Vertex
+     (Identifier : Interfaces.Integer_64) is
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Identifier, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("vertex", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("hoverResult", Success);
+      Writer.Key_Name ("result", Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("contents", Success);
+      Writer.Start_Array (Success);
+      Writer.String_Value ("This is dummy comment", Success);
+      Writer.End_Array (Success);
+      Writer.End_Object (Success);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+   end Write_Hover_Result_Vertex;
+
    ---------------------------------
    -- Write_Item_Definitions_Edge --
    ---------------------------------
@@ -358,6 +385,31 @@ package body LSIF.Serializer is
       Writer.End_Document (Success);
       Output.New_Line (Success);
    end Write_Range_Vertex;
+
+   ------------------------------------
+   -- Write_Text_Document_Hover_Edge --
+   ------------------------------------
+
+   procedure Write_Text_Document_Hover_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertex   : Interfaces.Integer_64) is
+   begin
+      Writer.Start_Document (Success);
+      Writer.Start_Object (Success);
+      Writer.Key_Name ("id", Success);
+      Writer.Integer_Value (Allocate_Identifier, Success);
+      Writer.Key_Name ("type", Success);
+      Writer.String_Value ("edge", Success);
+      Writer.Key_Name ("label", Success);
+      Writer.String_Value ("textDocument/hover", Success);
+      Writer.Key_Name ("outV", Success);
+      Writer.Integer_Value (Out_Vertex, Success);
+      Writer.Key_Name ("inV", Success);
+      Writer.Integer_Value (In_Vertex);
+      Writer.End_Object (Success);
+      Writer.End_Document (Success);
+      Output.New_Line (Success);
+   end Write_Text_Document_Hover_Edge;
 
    -----------------------------------------
    -- Write_Text_Document_References_Edge --

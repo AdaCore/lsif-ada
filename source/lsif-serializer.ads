@@ -42,6 +42,9 @@ package LSIF.Serializer is
      (Identifier : Interfaces.Integer_64;
       URI        : VSS.Strings.Virtual_String);
 
+   procedure Write_Hover_Result_Vertex
+     (Identifier : Interfaces.Integer_64);
+
    procedure Write_Item_Definitions_Edge
      (Out_Vertex  : Interfaces.Integer_64;
       In_Vertices : Identifier_Array;
@@ -78,6 +81,10 @@ package LSIF.Serializer is
 
    procedure Write_Result_Set_Vertex
      (Identifier : Interfaces.Integer_64);
+
+   procedure Write_Text_Document_Hover_Edge
+     (Out_Vertex  : Interfaces.Integer_64;
+      In_Vertex   : Interfaces.Integer_64);
 
    procedure Write_Text_Document_References_Edge
      (Out_Vertex  : Interfaces.Integer_64;
