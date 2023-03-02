@@ -70,17 +70,22 @@ procedure LSIF.Driver is
    --       GPR2.Path_Name.Hash,
    --       GPR2.Path_Name."=");
 
+   type Defining_Name_Information is record
+      Result_Set_Id       : Interfaces.Integer_64;
+      Reference_Result_Id : Interfaces.Integer_64;
+   end record;
+
    function Hash
      (Node : Libadalang.Analysis.Defining_Name)
       return Ada.Containers.Hash_Type is (Node.As_Ada_Node.Hash);
 
-   package Defining_Name_Identifier_Maps is
+   package Defining_Name_Maps is
      new Ada.Containers.Hashed_Maps
        (Libadalang.Analysis.Defining_Name,
-        Interfaces.Integer_64,
+        Defining_Name_Information,
         Hash,
         Libadalang.Analysis."=",
-        Interfaces."=");
+        "=");
 
    Project_Tree    : GPR2.Project.Tree.Object;
    Project_Context : GPR2.Context.Object;
@@ -88,7 +93,7 @@ procedure LSIF.Driver is
 
    --  File_Id         : File_Id_Maps.Map;
    Files : File_Maps.Map;
-   Defs  : Defining_Name_Identifier_Maps.Map;
+   Defs  : Defining_Name_Maps.Map;
 
    procedure Pass_1
      (File : in out File_Information;
@@ -227,7 +232,7 @@ procedure LSIF.Driver is
       declare
          use type Libadalang.Analysis.Defining_Name;
 
-         Vertex : Range_Information :=
+         Vertex          : Range_Information :=
            (Id         => LSIF.Serializer.Allocate_Identifier,
             Sloc       =>
               (Start_Line   => First_Location.Start_Line,
@@ -235,9 +240,8 @@ procedure LSIF.Driver is
                End_Line     => Last_Location.End_Line,
                End_Column   => Last_Location.End_Column),
             Definition => Ref_Decl);
-         Hover_Result_Id     : Interfaces.Integer_64 := 0;
-         Result_Set_Id       : Interfaces.Integer_64 := 0;
-         Reference_Result_Id : Interfaces.Integer_64 := 0;
+         Hover_Result_Id : Interfaces.Integer_64 := 0;
+         Info            : Defining_Name_Information;
 
       begin
          File.Ranges.Append (Vertex);
@@ -254,27 +258,27 @@ procedure LSIF.Driver is
             Vertex.Sloc.End_Column);
 
          if Ref_Decl = Self_Decl then
-            Result_Set_Id := LSIF.Serializer.Allocate_Identifier;
+            Info.Result_Set_Id := LSIF.Serializer.Allocate_Identifier;
 
-            LSIF.Serializer.Write_Result_Set_Vertex (Result_Set_Id);
-            LSIF.Serializer.Write_Next_Edge (Vertex.Id, Result_Set_Id);
+            LSIF.Serializer.Write_Result_Set_Vertex (Info.Result_Set_Id);
+            LSIF.Serializer.Write_Next_Edge (Vertex.Id, Info.Result_Set_Id);
 
             Hover_Result_Id := LSIF.Serializer.Allocate_Identifier;
 
             LSIF.Serializer.Write_Hover_Result_Vertex (Hover_Result_Id);
             LSIF.Serializer.Write_Text_Document_Hover_Edge
-              (Result_Set_Id, Hover_Result_Id);
+              (Info.Result_Set_Id, Hover_Result_Id);
 
-            Reference_Result_Id := LSIF.Serializer.Allocate_Identifier;
+            Info.Reference_Result_Id := LSIF.Serializer.Allocate_Identifier;
 
             LSIF.Serializer.Write_Reference_Result_Vertex
-              (Reference_Result_Id);
+              (Info.Reference_Result_Id);
             LSIF.Serializer.Write_Text_Document_References_Edge
-              (Result_Set_Id, Reference_Result_Id);
+              (Info.Result_Set_Id, Info.Reference_Result_Id);
             LSIF.Serializer.Write_Item_Definitions_Edge
-              (Reference_Result_Id, (1 => Vertex.Id), File.Id);
+              (Info.Reference_Result_Id, (1 => Vertex.Id), File.Id);
 
-            Defs.Insert (Vertex.Definition, Reference_Result_Id);
+            Defs.Insert (Vertex.Definition, Info);
          end if;
       end;
 
@@ -638,46 +642,43 @@ procedure LSIF.Driver is
 
    begin
       for R of File.Ranges loop
-         if References.Contains (R.Definition) then
-            declare
-               Aux : LSIF.Serializer.Identifier_Vectors.Vector :=
-                 References (R.Definition);
+         if Defs.Contains (R.Definition) then
+            if References.Contains (R.Definition) then
+               declare
+                  Aux : LSIF.Serializer.Identifier_Vectors.Vector :=
+                    References (R.Definition);
 
-            begin
-               Aux.Append (R.Id);
-               References.Replace (R.Definition, Aux);
-            end;
+               begin
+                  Aux.Append (R.Id);
+                  References.Replace (R.Definition, Aux);
+               end;
+
+            else
+               declare
+                  Aux : LSIF.Serializer.Identifier_Vectors.Vector;
+
+               begin
+                  Aux.Append (R.Id);
+                  References.Insert (R.Definition, Aux);
+               end;
+            end if;
+
+            LSIF.Serializer.Write_Next_Edge
+              (R.Id, Defs (R.Definition).Result_Set_Id);
 
          else
-            declare
-               Aux : LSIF.Serializer.Identifier_Vectors.Vector;
-
-            begin
-               Aux.Append (R.Id);
-               References.Insert (R.Definition, Aux);
-            end;
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "error: unregistered defining name: "
+               & Libadalang.Analysis.Image (R.Definition));
          end if;
       end loop;
 
       for Cursor in References.Iterate loop
-         declare
-            Definition : Libadalang.Analysis.Defining_Name :=
-              Definitions_Maps.Key (Cursor);
-
-         begin
-            if Defs.Contains (Definition) then
-               LSIF.Serializer.Write_Item_References_Edge
-                 (Defs (Definition),
-                  Definitions_Maps.Element (Cursor),
-                  File.Id);
-
-            else
-               Ada.Text_IO.Put_Line
-                 (Ada.Text_IO.Standard_Error,
-                  "error: unregistered defining name: "
-                  & Libadalang.Analysis.Image (Definition));
-            end if;
-         end;
+         LSIF.Serializer.Write_Item_References_Edge
+           (Defs (Definitions_Maps.Key (Cursor)).Reference_Result_Id,
+            Definitions_Maps.Element (Cursor),
+            File.Id);
       end loop;
    end Pass_2;
 
