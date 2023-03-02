@@ -57,8 +57,8 @@ package body LSIF.Serializer is
      (Out_Vertex  : Interfaces.Integer_64;
       In_Vertices : Identifier_Array) is
    begin
-      Writer.Start_Document (Success);
-      Writer.Start_Object (Success);
+      Writer.Start_Document ( Success );
+      Writer.Start_Object ( Success );
       Writer.Key_Name ("id", Success);
       Writer.Integer_Value (Allocate_Identifier, Success);
       Writer.Key_Name ("type", Success);
