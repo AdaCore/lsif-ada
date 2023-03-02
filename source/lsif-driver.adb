@@ -27,17 +27,13 @@ with GPR2.Project.Tree;
 with Libadalang.Analysis;
 with Libadalang.Common;
 with Libadalang.Project_Provider;
---  with Libadalang.Slocs;
 
 with VSS.Strings.Conversions;
-with VSS.Text_Streams.Standadrs;
-with VSS.JSON.Push_Writers;
 
---  with LSIF.Serializer;
+with LSIF.Serializer;
 
 procedure LSIF.Driver is
 
-   use type Interfaces.Integer_64;
    use type VSS.Strings.Virtual_String;
 
    type Range_Information is record
@@ -74,15 +70,9 @@ procedure LSIF.Driver is
    --       GPR2.Path_Name.Hash,
    --       GPR2.Path_Name."=");
 
-   Counter         : Interfaces.Integer_64 := 1;
-
    Project_Tree    : GPR2.Project.Tree.Object;
    Project_Context : GPR2.Context.Object;
    LAL_Context     : Libadalang.Analysis.Analysis_Context;
-   Output          : aliased VSS.Text_Streams.Output_Text_Stream'Class :=
-     VSS.Text_Streams.Standadrs.Standard_Output;
-   Writer          : VSS.JSON.Push_Writers.JSON_Simple_Push_Writer;
-   Success         : Boolean := True;
 
    --  File_Id         : File_Id_Maps.Map;
    Files : File_Maps.Map;
@@ -189,7 +179,7 @@ procedure LSIF.Driver is
 
          declare
             Vertex : Range_Information :=
-              (Id   => Counter,
+              (Id   => LSIF.Serializer.Allocate_Identifier,
                Sloc =>
                  (Start_Line   => First_Location.Start_Line,
                   Start_Column => First_Location.Start_Column,
@@ -199,36 +189,14 @@ procedure LSIF.Driver is
          begin
             File.Ranges.Append (Vertex);
 
-            Writer.Start_Document (Success);
-            Writer.Start_Object (Success);
-            Writer.Key_Name ("id", Success);
-            Writer.Integer_Value (Counter, Success);
-            Writer.Key_Name ("type", Success);
-            Writer.String_Value ("vertex", Success);
-            Writer.Key_Name ("label", Success);
-            Writer.String_Value ("range", Success);
-            Writer.Key_Name ("start", Success);
-            Writer.Start_Object (Success);
-            Writer.Key_Name ("line", Success);
-            Writer.Integer_Value
-              (Interfaces.Integer_64 (Vertex.Sloc.Start_Line) - 1, Success);
-            Writer.Key_Name ("character", Success);
-            Writer.Integer_Value
-              (Interfaces.Integer_64 (Vertex.Sloc.Start_Column) - 1, Success);
-            Writer.End_Object (Success);
-            Writer.Key_Name ("end", Success);
-            Writer.Start_Object (Success);
-            Writer.Key_Name ("line", Success);
-            Writer.Integer_Value
-              (Interfaces.Integer_64 (Vertex.Sloc.End_Line) - 1, Success);
-            Writer.Key_Name ("character", Success);
-            Writer.Integer_Value
-              (Interfaces.Integer_64 (Vertex.Sloc.End_Column), Success);
-            Writer.End_Object (Success);
-            Writer.End_Object (Success);
-            Writer.End_Document (Success);
-            Output.New_Line (Success);
-            Counter := Counter + 1;
+         LSIF.Serializer.Write_Range_Vertex
+           (Vertex.Id,
+            "",
+            Vertex.Sloc.Start_Line,
+            Vertex.Sloc.Start_Column,
+            "",
+            Vertex.Sloc.End_Line,
+            Vertex.Sloc.End_Column);
          end;
 
          --  Ada.Text_IO.Put_Line
@@ -609,7 +577,7 @@ begin
            --  Event_Handler => Event_Handler);
       --  LAL_Context.Discard_Errors_In_Populate_Lexical_Env (False);
 
-   Writer.Set_Stream (Output'Unchecked_Access);
+   LSIF.Serializer.Initialize;
 
    declare
       Path : constant String :=
@@ -617,101 +585,46 @@ begin
           .Get_Parent.Display_Dir_Name;
 
    begin
-      Writer.Start_Document (Success);
-      Writer.Start_Object (Success);
-      Writer.Key_Name ("id", Success);
-      Writer.Integer_Value (Counter, Success);
-      Writer.Key_Name ("type", Success);
-      Writer.String_Value ("vertex", Success);
-      Writer.Key_Name ("label", Success);
-      Writer.String_Value ("metaData", Success);
-      Writer.Key_Name ("version", Success);
-      Writer.String_Value ("0.4.0", Success);
-      Writer.Key_Name ("positionEncoding", Success);
-      Writer.String_Value ("utf-16", Success);
-      Writer.Key_Name ("projectRoot", Success);
-      Writer.String_Value
+      LSIF.Serializer.Write_Meta_Data_Vertex
         ("file://"
          & VSS.Strings.Conversions.To_Virtual_String
-           (Path (Path'First .. Path'Last - 1)),
-         Success);
-      Writer.Key_Name ("toolInfo", Success);
-      Writer.Start_Object (Success);
-      Writer.Key_Name ("name", Success);
-      Writer.String_Value ("lsif-ada", Success);
-      Writer.End_Object (Success);
-      Writer.End_Object (Success);
-      Writer.End_Document (Success);
-      Output.New_Line (Success);
-      Counter := Counter + 1;
+           (Path (Path'First .. Path'Last - 1)));
    end;
 
    for Source of Project_Tree.Root_Project.Sources loop
-      --  File_Id.Insert (Source.Path_Name, Counter);
-      Files.Insert
-        (Source.Path_Name.Virtual_File,
-         new File_Information'
-           (Id     => Counter,
-            Unit   =>
-              LAL_Context.Get_From_File (String (Source.Path_Name.Name)),
-            others => <>));
+      declare
+         File : not null File_Information_Access :=
+           new File_Information'
+             (Id     => LSIF.Serializer.Allocate_Identifier,
+              Unit   =>
+                LAL_Context.Get_From_File (String (Source.Path_Name.Name)),
+              others => <>);
 
-      Writer.Start_Document (Success);
-      Writer.Start_Object (Success);
-      Writer.Key_Name ("id", Success);
-      Writer.Integer_Value (Counter, Success);
-      Writer.Key_Name ("type", Success);
-      Writer.String_Value ("vertex", Success);
-      Writer.Key_Name ("label", Success);
-      Writer.String_Value ("document", Success);
-      Writer.Key_Name ("uri", Success);
-      Writer.String_Value
-        ("file://"
-         & VSS.Strings.Conversions.To_Virtual_String
-           (Source.Path_Name.Virtual_File.Display_Full_Name),
-         Success);
-      Writer.Key_Name ("languageId", Success);
-      Writer.String_Value ("ada", Success);
-      Writer.End_Object (Success);
-      Writer.End_Document (Success);
-      Output.New_Line (Success);
-      Counter := Counter + 1;
+      begin
+         Files.Insert (Source.Path_Name.Virtual_File, File);
+
+         LSIF.Serializer.Write_Document_Vertex
+           (File.Id,
+            "file://"
+            & VSS.Strings.Conversions.To_Virtual_String
+              (Source.Path_Name.Virtual_File.Display_Full_Name));
+      end;
    end loop;
 
    for File of Files loop
       Pass_1 (File.all, File.Unit.Root);
 
-      Writer.Start_Document (Success);
-      Writer.Start_Object (Success);
-      Writer.Key_Name ("id", Success);
-      Writer.Integer_Value (Counter, Success);
-      Writer.Key_Name ("type", Success);
-      Writer.String_Value ("edge", Success);
-      Writer.Key_Name ("label", Success);
-      Writer.String_Value ("contains", Success);
-      Writer.Key_Name ("outV", Success);
-      Writer.Integer_Value (File.Id, Success);
-      Writer.Key_Name ("inVs", Success);
-      Writer.Start_Array (Success);
+      declare
+         Range_Vertices :
+           LSIF.Serializer.Identifier_Array
+             (File.Ranges.First_Index .. File.Ranges.Last_Index);
 
-      for Vertex of File.Ranges loop
-         Writer.Integer_Value (Vertex.Id);
-      end loop;
+      begin
+         for Index in Range_Vertices'Range loop
+            Range_Vertices (Index) := File.Ranges (Index).Id;
+         end loop;
 
-      Writer.End_Array (Success);
-      Writer.End_Object (Success);
-      Writer.End_Document (Success);
-      Output.New_Line (Success);
-      Counter := Counter + 1;
+         LSIF.Serializer.Write_Contains_Edge (File.Id, Range_Vertices);
+      end;
    end loop;
-   --  for Source of Project_Tree.Root_Project.Sources loop
-   --     declare
-   --        Unit     : constant Libadalang.Analysis.Analysis_Unit :=
-   --          LAL_Context.Get_From_File
-   --            (String (Source.Path_Name.Name));
-   --
-   --     begin
-   --        Pass_1 (Unit.Root);
-   --     end;
-   --  end loop;
 end LSIF.Driver;
