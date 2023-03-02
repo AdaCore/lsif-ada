@@ -110,11 +110,13 @@ procedure LSIF.Driver is
 
    begin
       if Id_Node.Kind = Ada_Aliased_Present
+        or else Id_Node.Kind = Ada_Not_Null_Present
         or else Parent_Node.Kind = Ada_Attribute_Ref
         or else Parent_Node.Kind = Ada_Pragma_Node
       then
          --  Nothing to do:
          --   - reserved word "aliased"
+         --   - "not" in "not null"
          --   - attribute reference "'Attribute"
          --   - pragma
 
@@ -458,7 +460,8 @@ procedure LSIF.Driver is
                | Ada_Raise | Ada_Else | Ada_Declare | Ada_Pipe | Ada_In
                | Ada_Elsif | Ada_Others | Ada_Exception | Ada_For | Ada_Of
                | Ada_Constant | Ada_Doubledot | Ada_Diamond | Ada_Termination
-               | Ada_Pragma | Ada_Null | Ada_Return | Ada_Out
+               | Ada_Pragma | Ada_Null | Ada_Return | Ada_Out | Ada_Array
+               | Ada_Range | Ada_Function | Ada_Body | Ada_Do
                =>
                null;
                --  if State = Identifier then
