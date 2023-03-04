@@ -19,7 +19,10 @@
 
 with VSS.Strings;
 
+with GNATCOLL.VFS;
 with GPR2.Context;
+with GPR2.Project.Source.Set;
+with Libadalang.Analysis;
 
 package LSIF.Configuration is
 
@@ -28,5 +31,17 @@ package LSIF.Configuration is
 
    Project_Context : GPR2.Context.Object;
    --  Set of scenario variables defined in the command line.
+
+   Workspace_Root  : GNATCOLL.VFS.Virtual_File;
+   --  Root directory of the workspace.
+
+   Sources         : GPR2.Project.Source.Set.Object;
+   --  Set of source files to be processed.
+
+   LAL_Context     : Libadalang.Analysis.Analysis_Context;
+   --  Libadalang context
+
+   procedure Initialize;
+   --  Initialize configuration to default values.
 
 end LSIF.Configuration;

@@ -15,16 +15,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Command line processing
+--  Project files processing
 
-package LSIF.Command_Line is
+package LSIF.Projects is
 
    procedure Initialize;
-   --  Parse command line switches and sets configuration parameters that
-   --  can't be provided in project file.
+   --  Load project files, extract configuration options, and prepare set of
+   --  files to be processed.
 
-   procedure Apply_Options;
-   --  Apply command line options to configuration. It overrides configuration
-   --  parameters that was set by the project.
-
-end LSIF.Command_Line;
+end LSIF.Projects;

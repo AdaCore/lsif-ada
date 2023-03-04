@@ -15,16 +15,16 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Command line processing
+package body LSIF.Configuration is
 
-package LSIF.Command_Line is
+   ----------------
+   -- Initialize --
+   ----------------
 
-   procedure Initialize;
-   --  Parse command line switches and sets configuration parameters that
-   --  can't be provided in project file.
+   procedure Initialize is
+   begin
+      Workspace_Root := GNATCOLL.VFS.Get_Current_Dir;
+      Workspace_Root.Normalize_Path;
+   end Initialize;
 
-   procedure Apply_Options;
-   --  Apply command line options to configuration. It overrides configuration
-   --  parameters that was set by the project.
-
-end LSIF.Command_Line;
+end LSIF.Configuration;
