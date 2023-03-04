@@ -597,7 +597,7 @@ begin
 
    declare
       Path : constant String :=
-        LSIF.Configuration.Project_Root.Display_Full_Name;
+        LSIF.Configuration.Workspace_Root.Display_Full_Name;
 
    begin
       LSIF.Serializer.Write_Meta_Data_Vertex

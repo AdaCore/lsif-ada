@@ -32,8 +32,8 @@ package LSIF.Configuration is
    Project_Context : GPR2.Context.Object;
    --  Set of scenario variables defined in the command line.
 
-   Project_Root    : GNATCOLL.VFS.Virtual_File;
-   --  Root directory of the project.
+   Workspace_Root  : GNATCOLL.VFS.Virtual_File;
+   --  Root directory of the workspace.
 
    Sources         : GPR2.Project.Source.Set.Object;
    --  Set of source files to be processed.
