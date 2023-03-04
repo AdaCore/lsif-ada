@@ -102,134 +102,69 @@ procedure LSIF.Driver is
       First    : Libadalang.Common.Token_Reference;
       Last     : Libadalang.Common.Token_Reference)
    is
-      use all type Libadalang.Common.Ada_Node_Kind_Type;
-      use all type Libadalang.Common.Token_Kind;
-
       First_Location : Libadalang.Slocs.Source_Location_Range :=
         Libadalang.Common.Sloc_Range (Libadalang.Common.Data (First));
       Last_Location  : Libadalang.Slocs.Source_Location_Range :=
         Libadalang.Common.Sloc_Range (Libadalang.Common.Data (Last));
-      Last_Kind      : Libadalang.Common.Token_Kind :=
-        Libadalang.Common.Kind (Libadalang.Common.Data (Last));
       Id_Node        : Libadalang.Analysis.Ada_Node :=
         Document.Unit.Root.Lookup
           ((Last_Location.Start_Line, Last_Location.Start_Column));
-      Parent_Node    : Libadalang.Analysis.Ada_Node :=
-        Id_Node.Parent;
-      Ref_Decl       : Libadalang.Analysis.Defining_Name;
-      Self_Decl      : Libadalang.Analysis.Defining_Name;
+      Canonical      : Libadalang.Analysis.Defining_Name;
+      Is_Canonical   : Boolean;
 
    begin
-      if Id_Node.Kind = Ada_Abstract_Present
-        or else Id_Node.Kind = Ada_Abstract_Subp_Decl
-        or else Id_Node.Kind = Ada_Aliased_Present
-        or else Id_Node.Kind = Ada_Interface_Type_Def
-        or else Id_Node.Kind = Ada_Overriding_Overriding
-        or else Id_Node.Kind = Ada_Overriding_Not_Overriding
-        or else Id_Node.Kind = Ada_Tagged_Present
-        or else Id_Node.Kind = Ada_Incomplete_Tagged_Type_Decl
-        or else (Last_Kind = Ada_And and Id_Node.Kind = Ada_Derived_Type_Def)
-        or else (Last_Kind = Ada_Mod and Id_Node.Kind = Ada_Mod_Int_Type_Def)
-        or else (Last_Kind = Ada_Not and Id_Node.Kind = Ada_Not_Null_Present)
-        or else (Last_Kind = Ada_Not
-                   and Id_Node.Kind = Ada_Overriding_Not_Overriding)
-        or else Parent_Node.Kind = Ada_Attribute_Ref
-        or else Parent_Node.Kind = Ada_Pragma_Node
-      then
-         --  Nothing to do:
-         --   - reserved word "abstract"
-         --   - reserved word "abstract"
-         --   - reserved word "aliased"
-         --   - reserved word "interface"
-         --   - reserved word "overriding"
-         --   - reserved word "overriding" in "not overriding"
-         --   - reserved word "tagged"
-         --   - reserved word "tagged"
-         --   - "and" in derived type declaration
-         --   - "mod" in modular type declaration
-         --   - "not" in "not null"
-         --   - "not" in "not overriding"
-         --   - attribute reference "'Attribute"
-         --   - pragma
+      if Id_Node.Kind not in Libadalang.Common.Ada_Name then
+         --  Node is not a name, nothing to do.
 
          return;
       end if;
 
-         --  Ada.Text_IO.Put_Line
-         --    (Libadalang.Slocs.Image (First_Location)
-         --     & " "
-         --     & Libadalang.Slocs.Image (Last_Location));
+      --  Lookup for defining names: current, when name if defining, and
+      --  canonical.
 
-      --  Lookup for declaration
+      declare
+         use type Libadalang.Analysis.Defining_Name;
+
+         Name       : constant Libadalang.Analysis.Name          :=
+           Id_Node.As_Name;
+         Referenced : constant Libadalang.Analysis.Defining_Name :=
+           Name.P_Referenced_Defining_Name;
+         Current    : constant Libadalang.Analysis.Defining_Name :=
+           Name.P_Enclosing_Defining_Name;
 
       begin
-         Ref_Decl := Id_Node.P_Gnat_Xref;
+         if Referenced.Is_Null then
+            --  P_Referenced_Defining_Name returns null for the canonical
+            --  definition of the entity.
 
-      exception
-         when Libadalang.Common.Property_Error =>
-            Ref_Decl := Libadalang.Analysis.No_Defining_Name;
+            if not Current.Is_Null then
+               Canonical := Current.P_Canonical_Part;
+            end if;
 
-            Ada.Text_IO.Put
-              (Libadalang.Common.Image (Last)
-               & " "
-               & Libadalang.Analysis.Image (Id_Node)
-               & " "
-               & Libadalang.Analysis.Image (Parent_Node));
-            Ada.Text_IO.New_Line;
+         else
+            Canonical := Referenced.P_Canonical_Part;
+         end if;
 
-            raise;
+         Is_Canonical := Canonical = Current;
       end;
-
-      if Parent_Node.Kind = Ada_Defining_Name then
-         Self_Decl := Parent_Node.As_Defining_Name;
-
-      elsif Parent_Node.Kind = Ada_Dotted_Name
-              and then Parent_Node.Parent.Kind = Ada_Defining_Name
-      then
-         Self_Decl := Parent_Node.Parent.As_Defining_Name;
-      end if;
-
-      if Ref_Decl.Is_Null then
-         --  In some cases Ref_Decl is null for "primary" declaration of the
-         --  entity.
-
-         Ref_Decl := Self_Decl;
-      end if;
 
       --  Return when there is no declaration found
 
-      if Ref_Decl.Is_Null then
-         --  Ada.Text_IO.Put_Line
-         --    (Ada.Text_IO.Standard_Error,
-         --     "error: unresolved declaration: "
-         --     & Libadalang.Analysis.Image (Id_Node)
-         --     & " "
-         --     & Libadalang.Analysis.Image (Parent_Node));
-
+      if Canonical.Is_Null then
          return;
       end if;
 
       --  Return when declaration doesn't belongs to project's files.
 
       if not Documents.Contains
-               (GNATCOLL.VFS.Create_From_UTF8 (Ref_Decl.Unit.Get_Filename))
+               (GNATCOLL.VFS.Create_From_UTF8 (Canonical.Unit.Get_Filename))
       then
-         --  Ada.Text_IO.Put_Line
-         --    (Ada.Text_IO.Standard_Error,
-         --     "error: external reference: "
-         --     & Libadalang.Analysis.Image (Id_Node)
-         --     & " "
-         --     & Libadalang.Analysis.Image (Parent_Node)
-         --     & "  =>  "
-         --     & Libadalang.Analysis.Image (Decl)
-         --    );
-
          return;
       end if;
 
-      declare
-         use type Libadalang.Analysis.Defining_Name;
+      --  Create "range" and generate information
 
+      declare
          Vertex          : Range_Information :=
            (Id         => LSIF.Serializer.Allocate_Identifier,
             Sloc       =>
@@ -237,7 +172,7 @@ procedure LSIF.Driver is
                Start_Column => First_Location.Start_Column,
                End_Line     => Last_Location.End_Line,
                End_Column   => Last_Location.End_Column),
-            Definition => Ref_Decl);
+            Definition => Canonical);
          Hover_Result_Id : Interfaces.Integer_64 := 0;
          Info            : Defining_Name_Information;
          Code_Snippet    : VSS.String_Vectors.Virtual_String_Vector;
@@ -257,7 +192,7 @@ procedure LSIF.Driver is
             Vertex.Sloc.End_Line,
             Vertex.Sloc.End_Column);
 
-         if Ref_Decl = Self_Decl then
+         if Is_Canonical then
             --  "resultSet"
 
             Info.Result_Set_Id := LSIF.Serializer.Allocate_Identifier;
@@ -270,7 +205,7 @@ procedure LSIF.Driver is
             Hover_Result_Id := LSIF.Serializer.Allocate_Identifier;
 
             GNATdoc.Comments.Helpers.Get_Plain_Text_Documentation
-              (Ref_Decl, (others => <>), Code_Snippet, Documentation);
+              (Canonical, (others => <>), Code_Snippet, Documentation);
 
             LSIF.Serializer.Write_Hover_Result_Vertex
               (Hover_Result_Id,
@@ -411,97 +346,15 @@ procedure LSIF.Driver is
                   Analyze_Range (Document, First, Last);
                end if;
 
-            when Ada_String =>
-               --  Operator's names use string syntax for declarations and
-               --  may use string syntax for references.
-
-               declare
-                  use all type Libadalang.Common.Ada_Node_Kind_Type;
-
-                  Last_Sloc   : Libadalang.Slocs.Source_Location_Range :=
-                    Libadalang.Common.Sloc_Range
-                      (Libadalang.Common.Data (Token));
-                  Id_Node     : Libadalang.Analysis.Ada_Node :=
-                    Node.Lookup
-                      ((Last_Sloc.Start_Line, Last_Sloc.Start_Column));
-                  Parent_Node : Libadalang.Analysis.Ada_Node :=
-                    Id_Node.Parent;
-
-               begin
-                  if Parent_Node.Kind
-                       not in Ada_Concat_Op | Ada_Concat_Operand
-                                | Ada_Param_Assoc | Ada_Paren_Expr
-                                | Ada_Aggregate_Assoc
-                                | Ada_Pragma_Argument_Assoc | Ada_Raise_Stmt
-                                | Ada_Return_Stmt | Ada_Defining_Name
-                                | Ada_End_Name | Ada_Assign_Stmt
-                                | Ada_Aspect_Assoc | Ada_Object_Decl
-                                | Ada_Relation_Op
-                  then
-                     Ada.Text_IO.Put_Line ("String:");
-
-                     Libadalang.Analysis.Print (Id_Node);
-                     Libadalang.Analysis.Print (Parent_Node);
-
-                     raise Program_Error;
-                  end if;
-
-                  Analyze_Range (Document, Token, Token);
-               end;
-
             when Ada_Equal | Ada_Notequal | Ada_Amp | Ada_Not | Ada_And
                | Ada_Minus | Ada_Plus | Ada_Or | Ada_Gt | Ada_Divide | Ada_Mod
                | Ada_Lte | Ada_Mult | Ada_Lt | Ada_Power | Ada_Xor | Ada_Gte
-               =>
-               declare
-                  --  use all type Libadalang.Common.Ada_Node_Kind_Type;
-                  --
-                  --  Last_Sloc  : Libadalang.Slocs.Source_Location_Range :=
-                  --    Libadalang.Common.Sloc_Range
-                  --      (Libadalang.Common.Data (Token));
-                  --  Id_Node    : Libadalang.Analysis.Ada_Node :=
-                  --    Node.Lookup
-                  --      ((Last_Sloc.Start_Line, Last_Sloc.Start_Column));
-                  --  Parent_Node : Libadalang.Analysis.Ada_Node :=
-                  --  Id_Node.Parent;
-               begin
-                  --  Ada.Text_IO.Put_Line
-                  --    ("Operator: "
-                  --     & Libadalang.Common.Image (Token)
-                  --     & Libadalang.Analysis.Image (Id_Node));
+               | Ada_String | Ada_Char
+            =>
+               --  - operator
+               --  - string literal when used ad operator name
+               --  - character literal
 
-                  --  if Id_Node.Kind = Ada_Op_Concat then
-                  --     Ada.Text_IO.Put_Line (" concatenation");
-                  --
-                  --  elsif Id_Node.Kind = Ada_Op_Minus then
-                  --     Ada.Text_IO.Put_Line (" minus");
-                  --
-                  --  elsif Id_Node.Kind = Ada_Op_Plus then
-                  --     Ada.Text_IO.Put_Line (" plus");
-                  --
-                  --  elsif Id_Node.Kind = Ada_Op_Eq then
-                  --     Ada.Text_IO.Put_Line (" equal");
-                  --
-                  --  elsif Id_Node.Kind = Ada_Op_Neq then
-                  --     Ada.Text_IO.Put_Line (" equal");
-                  --
-                  --  elsif Id_Node.Kind = Ada_Op_And_Then then
-                  --     Ada.Text_IO.Put_Line (" ans then");
-                  --
-                  --  elsif Id_Node.Kind = Ada_Op_Not_In then
-                  --     --  Nothing to do
-                  --     Ada.Text_IO.Put_Line (" membership");
-                  --
-                  --  else
-                  --     Ada.Text_IO.New_Line;
-                  --     Libadalang.Analysis.Print (Id_Node);
-                  --     Libadalang.Analysis.Print (Parent_Node);
-                  --  end if;
-
-                  Analyze_Range (Document, Token, Token);
-               end;
-
-            when Ada_Char =>
                Analyze_Range (Document, Token, Token);
 
             when Ada_With | Ada_Whitespace | Ada_Semicolon | Ada_Comment
@@ -517,7 +370,7 @@ procedure LSIF.Driver is
                | Ada_Range | Ada_Function | Ada_Body | Ada_Do | Ada_While
                | Ada_Private | Ada_Renames | Ada_Subtype | Ada_At
                | Ada_Limited | Ada_Separate | Ada_Goto | Ada_Label_Start
-               =>
+            =>
                null;
 
             when others =>
