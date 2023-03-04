@@ -7,8 +7,9 @@ Command line switches
 
 The LSIF Indexer supports the following command line switches:
 
- * -P/--project  Path to project files
- * -X            Scenario variable
+ * -P/--project             Path to project files
+ * -X                       Scenario variable
+ * --workspace-root=<path>  Path to the root directory of the workspace
 
 
 Project file attributes
