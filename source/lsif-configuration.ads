@@ -41,4 +41,7 @@ package LSIF.Configuration is
    LAL_Context     : Libadalang.Analysis.Analysis_Context;
    --  Libadalang context
 
+   procedure Initialize;
+   --  Initialize configuration to default values.
+
 end LSIF.Configuration;

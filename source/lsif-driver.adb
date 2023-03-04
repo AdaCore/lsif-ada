@@ -589,6 +589,7 @@ procedure LSIF.Driver is
    end Pass_2;
 
 begin
+   LSIF.Configuration.Initialize;
    LSIF.Command_Line.Initialize;
    LSIF.Projects.Initialize;
    LSIF.Serializer.Initialize;

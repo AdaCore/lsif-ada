@@ -97,9 +97,6 @@ package body LSIF.Projects is
 
       --  Set root directory of the project
 
-      LSIF.Configuration.Workspace_Root :=
-        Project_Tree.Root_Project.Dir_Name.Virtual_File;
-
       if Project_Tree.Root_Project.Has_Attribute (LSIF_Workspace_Root) then
          declare
             Attribute : constant GPR2.Project.Attribute.Object :=
@@ -111,10 +108,9 @@ package body LSIF.Projects is
                 (GNATCOLL.VFS.Filesystem_String (Attribute.Value.Text),
                  Project_Tree.Root_Project.Dir_Name.Virtual_File
                  .Full_Name.all);
+            LSIF.Configuration.Workspace_Root.Normalize_Path;
          end;
       end if;
-
-      LSIF.Configuration.Workspace_Root.Normalize_Path;
 
       --  Prepare list of source files
 
