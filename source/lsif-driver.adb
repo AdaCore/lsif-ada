@@ -20,21 +20,18 @@ with Ada.Containers.Vectors;
 with Ada.Text_IO;
 with Interfaces;
 
-with GNATCOLL.VFS;
-with GPR2.Context;
-with GPR2.Path_Name;
-with GPR2.Project.Tree;
-with Libadalang.Analysis;
-with Libadalang.Common;
-with Libadalang.Project_Provider;
-
-with GNATdoc.Comments.Helpers;
-
 with VSS.Strings.Conversions;
 with VSS.String_Vectors;
 
+with GNATCOLL.VFS;
+with Libadalang.Analysis;
+with Libadalang.Common;
+
+with GNATdoc.Comments.Helpers;
+
 with LSIF.Command_Line;
 with LSIF.Configuration;
+with LSIF.Projects;
 with LSIF.Serializer;
 
 procedure LSIF.Driver is
@@ -50,18 +47,18 @@ procedure LSIF.Driver is
    package Range_Vectors is
       new Ada.Containers.Vectors (Positive, Range_Information);
 
-   type File_Information is record
+   type Document_Information is record
       Id     : Interfaces.Integer_64;
       Unit   : Libadalang.Analysis.Analysis_Unit;
       Ranges : Range_Vectors.Vector;
    end record;
 
-   type File_Information_Access is access all File_Information;
+   type Document_Information_Access is access all Document_Information;
 
-   package File_Maps is
+   package Document_Maps is
      new Ada.Containers.Hashed_Maps
        (GNATCOLL.VFS.Virtual_File,
-        File_Information_Access,
+        Document_Information_Access,
         GNATCOLL.VFS.Full_Name_Hash,
         GNATCOLL.VFS."=");
 
@@ -82,31 +79,28 @@ procedure LSIF.Driver is
         Libadalang.Analysis."=",
         "=");
 
-   Project_Tree : GPR2.Project.Tree.Object;
-   LAL_Context  : Libadalang.Analysis.Analysis_Context;
-
-   Files : File_Maps.Map;
-   Defs  : Defining_Name_Maps.Map;
+   Documents : Document_Maps.Map;
+   Defs      : Defining_Name_Maps.Map;
 
    procedure Pass_1
-     (File : in out File_Information;
-      Node : Libadalang.Analysis.Ada_Node'Class);
+     (Document : in out Document_Information;
+      Node     : Libadalang.Analysis.Ada_Node'Class);
 
-   procedure Pass_2 (File : in out File_Information);
+   procedure Pass_2 (Document : in out Document_Information);
 
    procedure Analyze_Range
-     (File  : in out File_Information;
-      First : Libadalang.Common.Token_Reference;
-      Last  : Libadalang.Common.Token_Reference);
+     (Document : in out Document_Information;
+      First    : Libadalang.Common.Token_Reference;
+      Last     : Libadalang.Common.Token_Reference);
 
    -------------------
    -- Analyze_Range --
    -------------------
 
    procedure Analyze_Range
-     (File  : in out File_Information;
-      First : Libadalang.Common.Token_Reference;
-      Last  : Libadalang.Common.Token_Reference)
+     (Document : in out Document_Information;
+      First    : Libadalang.Common.Token_Reference;
+      Last     : Libadalang.Common.Token_Reference)
    is
       use all type Libadalang.Common.Ada_Node_Kind_Type;
       use all type Libadalang.Common.Token_Kind;
@@ -118,7 +112,7 @@ procedure LSIF.Driver is
       Last_Kind      : Libadalang.Common.Token_Kind :=
         Libadalang.Common.Kind (Libadalang.Common.Data (Last));
       Id_Node        : Libadalang.Analysis.Ada_Node :=
-        File.Unit.Root.Lookup
+        Document.Unit.Root.Lookup
           ((Last_Location.Start_Line, Last_Location.Start_Column));
       Parent_Node    : Libadalang.Analysis.Ada_Node :=
         Id_Node.Parent;
@@ -217,7 +211,7 @@ procedure LSIF.Driver is
 
       --  Return when declaration doesn't belongs to project's files.
 
-      if not Files.Contains
+      if not Documents.Contains
                (GNATCOLL.VFS.Create_From_UTF8 (Ref_Decl.Unit.Get_Filename))
       then
          --  Ada.Text_IO.Put_Line
@@ -250,7 +244,7 @@ procedure LSIF.Driver is
          Documentation   : VSS.String_Vectors.Virtual_String_Vector;
 
       begin
-         File.Ranges.Append (Vertex);
+         Document.Ranges.Append (Vertex);
 
          --  Generate "range" vertex
 
@@ -294,7 +288,7 @@ procedure LSIF.Driver is
             LSIF.Serializer.Write_Text_Document_References_Edge
               (Info.Result_Set_Id, Info.Reference_Result_Id);
             LSIF.Serializer.Write_Item_Definitions_Edge
-              (Info.Reference_Result_Id, (1 => Vertex.Id), File.Id);
+              (Info.Reference_Result_Id, (1 => Vertex.Id), Document.Id);
 
             Defs.Insert (Vertex.Definition, Info);
          end if;
@@ -306,8 +300,8 @@ procedure LSIF.Driver is
    ------------
 
    procedure Pass_1
-     (File : in out File_Information;
-      Node : Libadalang.Analysis.Ada_Node'Class)
+     (Document : in out Document_Information;
+      Node     : Libadalang.Analysis.Ada_Node'Class)
    is
       use type Libadalang.Common.Token_Reference;
       use all type Libadalang.Common.Token_Kind;
@@ -370,7 +364,7 @@ procedure LSIF.Driver is
                   end case;
                end loop;
 
-               Analyze_Range (File, First, Last);
+               Analyze_Range (Document, First, Last);
 
             when Ada_Dot =>
                First := Token;
@@ -414,7 +408,7 @@ procedure LSIF.Driver is
                end loop;
 
                if First /= Last then
-                  Analyze_Range (File, First, Last);
+                  Analyze_Range (Document, First, Last);
                end if;
 
             when Ada_String =>
@@ -452,7 +446,7 @@ procedure LSIF.Driver is
                      raise Program_Error;
                   end if;
 
-                  Analyze_Range (File, Token, Token);
+                  Analyze_Range (Document, Token, Token);
                end;
 
             when Ada_Equal | Ada_Notequal | Ada_Amp | Ada_Not | Ada_And
@@ -504,11 +498,11 @@ procedure LSIF.Driver is
                   --     Libadalang.Analysis.Print (Parent_Node);
                   --  end if;
 
-                  Analyze_Range (File, Token, Token);
+                  Analyze_Range (Document, Token, Token);
                end;
 
             when Ada_Char =>
-               Analyze_Range (File, Token, Token);
+               Analyze_Range (Document, Token, Token);
 
             when Ada_With | Ada_Whitespace | Ada_Semicolon | Ada_Comment
                | Ada_Procedure | Ada_Is | Ada_Use | Ada_Type | Ada_Record
@@ -539,7 +533,7 @@ procedure LSIF.Driver is
    -- Pass_2 --
    ------------
 
-   procedure Pass_2 (File : in out File_Information) is
+   procedure Pass_2 (Document : in out Document_Information) is
 
       package Definitions_Maps is
         new Ada.Containers.Hashed_Maps
@@ -552,7 +546,7 @@ procedure LSIF.Driver is
       References : Definitions_Maps.Map;
 
    begin
-      for R of File.Ranges loop
+      for R of Document.Ranges loop
          if Defs.Contains (R.Definition) then
             if References.Contains (R.Definition) then
                declare
@@ -590,55 +584,20 @@ procedure LSIF.Driver is
          LSIF.Serializer.Write_Item_References_Edge
            (Defs (Definitions_Maps.Key (Cursor)).Reference_Result_Id,
             Definitions_Maps.Element (Cursor),
-            File.Id);
+            Document.Id);
       end loop;
    end Pass_2;
 
 begin
    LSIF.Command_Line.Initialize;
-
-   --  Load project file
-
-   begin
-      Project_Tree.Load_Autoconf
-        (GPR2.Path_Name.Create_File
-           (GPR2.Filename_Type  --  '("gnat/lsif.gpr")),
-                (VSS.Strings.Conversions.To_UTF_8_String
-                     (LSIF.Configuration.Project_File))),
-         LSIF.Configuration.Project_Context);
-
-      Project_Tree.Update_Sources (With_Runtime => True);
-
-   exception
-      when GPR2.Project_Error =>
-         for Message of Project_Tree.Log_Messages.all loop
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Standard_Error, Message.Format);
-         end loop;
-
-         raise;
-   end;
-
-   --  Create Libadalang context and unit provider
-
-      --  Event_Handler :=
-      --    Libadalang.Analysis.Create_Event_Handler_Reference
-      --      (Missing_File_Event_Handler'(null record));
-
-   LAL_Context :=
-     Libadalang.Analysis.Create_Context
-       (Unit_Provider =>
-          Libadalang.Project_Provider.Create_Project_Unit_Provider
-            (Project_Tree));
-           --  Event_Handler => Event_Handler);
-      --  LAL_Context.Discard_Errors_In_Populate_Lexical_Env (False);
-
+   LSIF.Projects.Initialize;
    LSIF.Serializer.Initialize;
+
+   --  Generate meta information
 
    declare
       Path : constant String :=
-        Project_Tree.Root_Project.Path_Name.Virtual_File.Get_Parent
-          .Get_Parent.Display_Dir_Name;
+        LSIF.Configuration.Project_Root.Display_Full_Name;
 
    begin
       LSIF.Serializer.Write_Meta_Data_Vertex
@@ -647,20 +606,23 @@ begin
            (Path (Path'First .. Path'Last - 1)));
    end;
 
-   for Source of Project_Tree.Root_Project.Sources loop
+   --  Generate list of the documents
+
+   for Source of LSIF.Configuration.Sources loop
       declare
-         File : not null File_Information_Access :=
-           new File_Information'
+         Document : not null Document_Information_Access :=
+           new Document_Information'
              (Id     => LSIF.Serializer.Allocate_Identifier,
               Unit   =>
-                LAL_Context.Get_From_File (String (Source.Path_Name.Name)),
+                LSIF.Configuration.LAL_Context.Get_From_File
+                  (String (Source.Path_Name.Name)),
               others => <>);
 
       begin
-         Files.Insert (Source.Path_Name.Virtual_File, File);
+         Documents.Insert (Source.Path_Name.Virtual_File, Document);
 
          LSIF.Serializer.Write_Document_Vertex
-           (File.Id,
+           (Document.Id,
             "file://"
             & VSS.Strings.Conversions.To_Virtual_String
               (Source.Path_Name.Virtual_File.Display_Full_Name));
@@ -669,26 +631,26 @@ begin
 
    --  Pass 1: populate range information
 
-   for File of Files loop
-      Pass_1 (File.all, File.Unit.Root);
+   for Document of Documents loop
+      Pass_1 (Document.all, Document.Unit.Root);
 
       declare
          Range_Vertices :
            LSIF.Serializer.Identifier_Array
-             (File.Ranges.First_Index .. File.Ranges.Last_Index);
+             (Document.Ranges.First_Index .. Document.Ranges.Last_Index);
 
       begin
          for Index in Range_Vertices'Range loop
-            Range_Vertices (Index) := File.Ranges (Index).Id;
+            Range_Vertices (Index) := Document.Ranges (Index).Id;
          end loop;
 
-         LSIF.Serializer.Write_Contains_Edge (File.Id, Range_Vertices);
+         LSIF.Serializer.Write_Contains_Edge (Document.Id, Range_Vertices);
       end;
    end loop;
 
    --  Pass 2: populate cross references information
 
-   for File of Files loop
-      Pass_2 (File.all);
+   for Document of Documents loop
+      Pass_2 (Document.all);
    end loop;
 end LSIF.Driver;

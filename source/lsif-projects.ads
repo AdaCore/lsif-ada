@@ -15,30 +15,12 @@
 -- of the license.                                                          --
 ------------------------------------------------------------------------------
 
---  Tool's configuration
+--  Project files processing
 
-with VSS.Strings;
+package LSIF.Projects is
 
-with GNATCOLL.VFS;
-with GPR2.Context;
-with GPR2.Project.Source.Set;
-with Libadalang.Analysis;
+   procedure Initialize;
+   --  Load project files, extract configuration options, and prepare set of
+   --  files to be processed.
 
-package LSIF.Configuration is
-
-   Project_File    : VSS.Strings.Virtual_String;
-   --  Project file to process
-
-   Project_Context : GPR2.Context.Object;
-   --  Set of scenario variables defined in the command line.
-
-   Project_Root    : GNATCOLL.VFS.Virtual_File;
-   --  Root directory of the project.
-
-   Sources         : GPR2.Project.Source.Set.Object;
-   --  Set of source files to be processed.
-
-   LAL_Context     : Libadalang.Analysis.Analysis_Context;
-   --  Libadalang context
-
-end LSIF.Configuration;
+end LSIF.Projects;
