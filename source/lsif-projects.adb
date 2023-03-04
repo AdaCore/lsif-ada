@@ -17,6 +17,7 @@
 
 with Ada.Text_IO;
 
+with VSS.Application;
 with VSS.Strings.Conversions;
 
 with GPR2.Path_Name;
@@ -36,6 +37,14 @@ package body LSIF.Projects is
 
    procedure Initialize is
    begin
+      --  Export GPR_TOOL scenario variable when necessary
+
+      if not LSIF.Configuration.Project_Context.Contains ("GPR_TOOL")
+        and not VSS.Application.System_Environment.Contains ("GPR_TOOL")
+      then
+         LSIF.Configuration.Project_Context.Insert ("GPR_TOOL", "lsif-ada");
+      end if;
+
       --  Load project file
 
       begin
