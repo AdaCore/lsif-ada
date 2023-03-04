@@ -36,4 +36,8 @@ project LSIF is
       for Executable ("lsif-driver.adb") use "lsif-ada";
    end Builder;
 
+   package LSIF is
+      for Project_Root use "..";
+   end LSIF;
+
 end LSIF;
