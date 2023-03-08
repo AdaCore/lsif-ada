@@ -37,7 +37,9 @@ project LSIF is
    end Builder;
 
    package LSIF is
-      for Project_Root use "..";
+      for Workspace_Root use "..";
+      for Excluded_Project_Files use
+        ("libgnatdoc.gpr", "vss_json.gpr", "vss_text.gpr");
    end LSIF;
 
 end LSIF;

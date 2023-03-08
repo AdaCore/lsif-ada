@@ -17,6 +17,7 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
+with Ada.Exceptions;
 with Ada.Text_IO;
 with Interfaces;
 
@@ -122,30 +123,43 @@ procedure LSIF.Driver is
       --  Lookup for defining names: current, when name if defining, and
       --  canonical.
 
-      declare
-         use type Libadalang.Analysis.Defining_Name;
-
-         Name       : constant Libadalang.Analysis.Name          :=
-           Id_Node.As_Name;
-         Referenced : constant Libadalang.Analysis.Defining_Name :=
-           Name.P_Referenced_Defining_Name;
-         Current    : constant Libadalang.Analysis.Defining_Name :=
-           Name.P_Enclosing_Defining_Name;
-
       begin
-         if Referenced.Is_Null then
-            --  P_Referenced_Defining_Name returns null for the canonical
-            --  definition of the entity.
+         declare
+            use type Libadalang.Analysis.Defining_Name;
 
-            if not Current.Is_Null then
-               Canonical := Current.P_Canonical_Part;
+            Name       : constant Libadalang.Analysis.Name          :=
+              Id_Node.As_Name;
+            Referenced : constant Libadalang.Analysis.Defining_Name :=
+              Name.P_Referenced_Defining_Name;
+            Current    : constant Libadalang.Analysis.Defining_Name :=
+              Name.P_Enclosing_Defining_Name;
+
+         begin
+            if Referenced.Is_Null then
+               --  P_Referenced_Defining_Name returns null for the canonical
+               --  definition of the entity.
+
+               if not Current.Is_Null then
+                  Canonical := Current.P_Canonical_Part;
+               end if;
+
+            else
+               Canonical := Referenced.P_Canonical_Part;
             end if;
 
-         else
-            Canonical := Referenced.P_Canonical_Part;
-         end if;
+            Is_Canonical := Canonical = Current;
+         end;
 
-         Is_Canonical := Canonical = Current;
+      exception
+         when E : others =>
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "LAL name resolution failure at "
+               & Libadalang.Analysis.Image (Id_Node)
+               & ": "
+               & Ada.Exceptions.Exception_Information (E));
+
+            return;
       end;
 
       --  Return when there is no declaration found
@@ -204,8 +218,19 @@ procedure LSIF.Driver is
 
             Hover_Result_Id := LSIF.Serializer.Allocate_Identifier;
 
-            GNATdoc.Comments.Helpers.Get_Plain_Text_Documentation
-              (Canonical, (others => <>), Code_Snippet, Documentation);
+            begin
+               GNATdoc.Comments.Helpers.Get_Plain_Text_Documentation
+                 (Canonical, (others => <>), Code_Snippet, Documentation);
+
+            exception
+               when E : others =>
+                  Ada.Text_IO.Put_Line
+                    (Ada.Text_IO.Standard_Error,
+                     "GNATdoc exception at "
+                     & Libadalang.Analysis.Image (Id_Node)
+                     & ": "
+                     & Ada.Exceptions.Exception_Information (E));
+            end;
 
             LSIF.Serializer.Write_Hover_Result_Vertex
               (Hover_Result_Id,
@@ -284,8 +309,10 @@ procedure LSIF.Driver is
 
                         Last := Token;
 
-                     when Ada_Whitespace | Ada_Comma | Ada_Par_Close
-                        | Ada_Semicolon | Ada_Tick | Ada_All | Ada_Label_End
+                     when Ada_Whitespace | Ada_Comma | Ada_Semicolon
+                        | Ada_Tick | Ada_Equal
+                        | Ada_Par_Open | Ada_Par_Close
+                        | Ada_All | Ada_Label_End
                         =>
                         exit;
 
@@ -349,7 +376,7 @@ procedure LSIF.Driver is
             when Ada_Equal | Ada_Notequal | Ada_Amp | Ada_Not | Ada_And
                | Ada_Minus | Ada_Plus | Ada_Or | Ada_Gt | Ada_Divide | Ada_Mod
                | Ada_Lte | Ada_Mult | Ada_Lt | Ada_Power | Ada_Xor | Ada_Gte
-               | Ada_String | Ada_Char
+               | Ada_Rem | Ada_Abs | Ada_String | Ada_Char
             =>
                --  - operator
                --  - string literal when used ad operator name
@@ -370,6 +397,8 @@ procedure LSIF.Driver is
                | Ada_Range | Ada_Function | Ada_Body | Ada_Do | Ada_While
                | Ada_Private | Ada_Renames | Ada_Subtype | Ada_At
                | Ada_Limited | Ada_Separate | Ada_Goto | Ada_Label_Start
+               | Ada_Generic | Ada_Decimal | Ada_Reverse | Ada_Delay
+               | Ada_Brack_Open | Ada_Brack_Close
             =>
                null;
 
@@ -446,6 +475,7 @@ begin
    LSIF.Command_Line.Initialize;
    LSIF.Projects.Initialize;
    LSIF.Command_Line.Apply_Options;
+   LSIF.Projects.Build_Set_Of_Files;
    LSIF.Serializer.Initialize;
 
    --  Generate meta information

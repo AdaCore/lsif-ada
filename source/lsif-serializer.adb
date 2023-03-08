@@ -16,14 +16,14 @@
 ------------------------------------------------------------------------------
 
 with VSS.JSON.Push_Writers;
-with VSS.Text_Streams.Standadrs;
+with VSS.Text_Streams.Standards;
 
 package body LSIF.Serializer is
 
    Counter : Interfaces.Integer_64 := 1;
 
    Output  : aliased VSS.Text_Streams.Output_Text_Stream'Class :=
-     VSS.Text_Streams.Standadrs.Standard_Output;
+     VSS.Text_Streams.Standards.Standard_Output;
    Writer  : VSS.JSON.Push_Writers.JSON_Simple_Push_Writer;
    Success : Boolean := True;
 
