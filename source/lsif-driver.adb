@@ -17,6 +17,7 @@
 
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
+with Ada.Exceptions;
 with Ada.Text_IO;
 with Interfaces;
 
@@ -204,8 +205,19 @@ procedure LSIF.Driver is
 
             Hover_Result_Id := LSIF.Serializer.Allocate_Identifier;
 
-            GNATdoc.Comments.Helpers.Get_Plain_Text_Documentation
-              (Canonical, (others => <>), Code_Snippet, Documentation);
+            begin
+               GNATdoc.Comments.Helpers.Get_Plain_Text_Documentation
+                 (Canonical, (others => <>), Code_Snippet, Documentation);
+
+            exception
+               when E : others =>
+                  Ada.Text_IO.Put_Line
+                    (Ada.Text_IO.Standard_Error,
+                     "GNATdoc exception at "
+                     & Libadalang.Analysis.Image (Id_Node)
+                     & ": "
+                     & Ada.Exceptions.Exception_Information (E));
+            end;
 
             LSIF.Serializer.Write_Hover_Result_Vertex
               (Hover_Result_Id,
