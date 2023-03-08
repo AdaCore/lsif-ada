@@ -446,6 +446,7 @@ begin
    LSIF.Command_Line.Initialize;
    LSIF.Projects.Initialize;
    LSIF.Command_Line.Apply_Options;
+   LSIF.Projects.Build_Set_Of_Files;
    LSIF.Serializer.Initialize;
 
    --  Generate meta information

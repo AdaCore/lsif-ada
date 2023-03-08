@@ -47,6 +47,33 @@ package body LSIF.Projects is
 
    Project_Tree : GPR2.Project.Tree.Object;
 
+   ------------------------
+   -- Build_Set_Of_Files --
+   ------------------------
+
+   procedure Build_Set_Of_Files is
+      use type GNATCOLL.VFS.Virtual_File;
+
+   begin
+      --  Prepare list of source files
+
+      for View of Project_Tree loop
+         if not View.Is_Externally_Built then
+            for Source of View.Sources loop
+               if Source.Is_Ada
+                 and then
+                   GNATCOLL.VFS.Greatest_Common_Path
+                     ((1 => LSIF.Configuration.Workspace_Root,
+                       2 => Source.Path_Name.Virtual_File))
+                 = LSIF.Configuration.Workspace_Root
+               then
+                  LSIF.Configuration.Sources.Insert (Source);
+               end if;
+            end loop;
+         end if;
+      end loop;
+   end Build_Set_Of_Files;
+
    ----------------
    -- Initialize --
    ----------------
@@ -111,14 +138,6 @@ package body LSIF.Projects is
             LSIF.Configuration.Workspace_Root.Normalize_Path;
          end;
       end if;
-
-      --  Prepare list of source files
-
-      for Source of Project_Tree.Root_Project.Sources loop
-         if Source.Is_Ada then
-            LSIF.Configuration.Sources.Insert (Source);
-         end if;
-      end loop;
    end Initialize;
 
    -------------------------
