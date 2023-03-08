@@ -123,30 +123,43 @@ procedure LSIF.Driver is
       --  Lookup for defining names: current, when name if defining, and
       --  canonical.
 
-      declare
-         use type Libadalang.Analysis.Defining_Name;
-
-         Name       : constant Libadalang.Analysis.Name          :=
-           Id_Node.As_Name;
-         Referenced : constant Libadalang.Analysis.Defining_Name :=
-           Name.P_Referenced_Defining_Name;
-         Current    : constant Libadalang.Analysis.Defining_Name :=
-           Name.P_Enclosing_Defining_Name;
-
       begin
-         if Referenced.Is_Null then
-            --  P_Referenced_Defining_Name returns null for the canonical
-            --  definition of the entity.
+         declare
+            use type Libadalang.Analysis.Defining_Name;
 
-            if not Current.Is_Null then
-               Canonical := Current.P_Canonical_Part;
+            Name       : constant Libadalang.Analysis.Name          :=
+              Id_Node.As_Name;
+            Referenced : constant Libadalang.Analysis.Defining_Name :=
+              Name.P_Referenced_Defining_Name;
+            Current    : constant Libadalang.Analysis.Defining_Name :=
+              Name.P_Enclosing_Defining_Name;
+
+         begin
+            if Referenced.Is_Null then
+               --  P_Referenced_Defining_Name returns null for the canonical
+               --  definition of the entity.
+
+               if not Current.Is_Null then
+                  Canonical := Current.P_Canonical_Part;
+               end if;
+
+            else
+               Canonical := Referenced.P_Canonical_Part;
             end if;
 
-         else
-            Canonical := Referenced.P_Canonical_Part;
-         end if;
+            Is_Canonical := Canonical = Current;
+         end;
 
-         Is_Canonical := Canonical = Current;
+      exception
+         when E : others =>
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "LAL name resolution failure at "
+               & Libadalang.Analysis.Image (Id_Node)
+               & ": "
+               & Ada.Exceptions.Exception_Information (E));
+
+            return;
       end;
 
       --  Return when there is no declaration found
