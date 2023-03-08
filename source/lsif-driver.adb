@@ -309,8 +309,10 @@ procedure LSIF.Driver is
 
                         Last := Token;
 
-                     when Ada_Whitespace | Ada_Comma | Ada_Par_Close
-                        | Ada_Semicolon | Ada_Tick | Ada_All | Ada_Label_End
+                     when Ada_Whitespace | Ada_Comma | Ada_Semicolon
+                        | Ada_Tick | Ada_Equal
+                        | Ada_Par_Open | Ada_Par_Close
+                        | Ada_All | Ada_Label_End
                         =>
                         exit;
 
@@ -374,7 +376,7 @@ procedure LSIF.Driver is
             when Ada_Equal | Ada_Notequal | Ada_Amp | Ada_Not | Ada_And
                | Ada_Minus | Ada_Plus | Ada_Or | Ada_Gt | Ada_Divide | Ada_Mod
                | Ada_Lte | Ada_Mult | Ada_Lt | Ada_Power | Ada_Xor | Ada_Gte
-               | Ada_String | Ada_Char
+               | Ada_Rem | Ada_Abs | Ada_String | Ada_Char
             =>
                --  - operator
                --  - string literal when used ad operator name
@@ -395,6 +397,8 @@ procedure LSIF.Driver is
                | Ada_Range | Ada_Function | Ada_Body | Ada_Do | Ada_While
                | Ada_Private | Ada_Renames | Ada_Subtype | Ada_At
                | Ada_Limited | Ada_Separate | Ada_Goto | Ada_Label_Start
+               | Ada_Generic | Ada_Decimal | Ada_Reverse | Ada_Delay
+               | Ada_Brack_Open | Ada_Brack_Close
             =>
                null;
 
