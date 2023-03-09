@@ -86,18 +86,25 @@ procedure LSIF.Driver is
    procedure Pass_1
      (Document : in out Document_Information;
       Node     : Libadalang.Analysis.Ada_Node'Class);
+   --  Pass trough all tokens of the given document, compute ranges and add
+   --  them to the document.
 
    procedure Pass_2 (Document : in out Document_Information);
+   --  Serialize references for the ranges of the document.
 
    procedure Analyze_Range
      (Document : in out Document_Information;
       First    : Libadalang.Common.Token_Reference;
       Last     : Libadalang.Common.Token_Reference);
+   --  Analyze given range of tokens, determine whether it contains definition
+   --  or reference.
 
    procedure Lookup_Identifier_Boundaries
      (Token : in out Libadalang.Common.Token_Reference;
       First : out Libadalang.Common.Token_Reference;
       Last  : out Libadalang.Common.Token_Reference);
+   --  Lookup tokens around identifier to find "range" that GitLab's UI can
+   --  process.
 
    -------------------
    -- Analyze_Range --
