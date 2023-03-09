@@ -86,13 +86,25 @@ procedure LSIF.Driver is
    procedure Pass_1
      (Document : in out Document_Information;
       Node     : Libadalang.Analysis.Ada_Node'Class);
+   --  Pass trough all tokens of the given document, compute ranges and add
+   --  them to the document.
 
    procedure Pass_2 (Document : in out Document_Information);
+   --  Serialize references for the ranges of the document.
 
    procedure Analyze_Range
      (Document : in out Document_Information;
       First    : Libadalang.Common.Token_Reference;
       Last     : Libadalang.Common.Token_Reference);
+   --  Analyze given range of tokens, determine whether it contains definition
+   --  or reference.
+
+   procedure Lookup_Identifier_Boundaries
+     (Token : in out Libadalang.Common.Token_Reference;
+      First : out Libadalang.Common.Token_Reference;
+      Last  : out Libadalang.Common.Token_Reference);
+   --  Lookup tokens around identifier to find "range" that GitLab's UI can
+   --  process.
 
    -------------------
    -- Analyze_Range --
@@ -255,6 +267,72 @@ procedure LSIF.Driver is
       end;
    end Analyze_Range;
 
+   ----------------------------------
+   -- Lookup_Identifier_Boundaries --
+   ----------------------------------
+
+   procedure Lookup_Identifier_Boundaries
+     (Token : in out Libadalang.Common.Token_Reference;
+      First : out Libadalang.Common.Token_Reference;
+      Last  : out Libadalang.Common.Token_Reference)
+   is
+      use all type Libadalang.Common.Token_Kind;
+
+      Current  : Libadalang.Common.Token_Reference;
+      Previous : Libadalang.Common.Token_Reference;
+
+   begin
+      First := Token;
+      Last  := Token;
+
+      --  Lookup backward to check previous token.
+
+      Current := Libadalang.Common.Previous (Token);
+
+      case Libadalang.Common.Kind (Libadalang.Common.Data (Current)) is
+         when Ada_Dot =>
+            Previous := Libadalang.Common.Previous (Current, True);
+
+            if Libadalang.Common.Kind (Libadalang.Common.Data (Previous))
+              = Ada_Identifier
+            then
+               --  Continuation of the prefixed name, include '.' in range
+
+               First := Current;
+            end if;
+
+         when Ada_Par_Open =>
+            --  Open parenthesis before the identifier, include it in range
+
+            First := Current;
+
+         when others =>
+            null;
+      end case;
+
+      --  Lookup forward to find last identifier of the name
+
+      Current := Token;
+
+      loop
+         Current := Libadalang.Common.Next (Current);
+
+         case Libadalang.Common.Kind (Libadalang.Common.Data (Current)) is
+            when Ada_Identifier | Ada_String =>
+               --  Continuation of prefixed name
+
+               Last  := Current;
+               Token := Current;
+
+            when Ada_Dot =>
+               null;
+
+            when others =>
+               exit;
+         end case;
+      end loop;
+   end Lookup_Identifier_Boundaries;
+
    ------------
    -- Pass_1 --
    ------------
@@ -281,97 +359,15 @@ procedure LSIF.Driver is
       loop
          exit when Token = Libadalang.Common.No_Token;
 
-         --  Ada.Text_IO.Put_Line (Libadalang.Common.Image (Token));
-
          case Libadalang.Common.Kind (Libadalang.Common.Data (Token)) is
             when Ada_Identifier =>
-               First := Token;
-               Last  := Token;
+               --  Identifier, it may starts sequence of prefixed name, or may
+               --  continue such sequence located on previous line, so do
+               --  special processing to find boundaries of prefixed name,
+               --  which maps to GitLab expectations well.
 
-               --  GitLab: Lookup for prefixed name
-               --
-               --  XXX prefixed name can continue on new line!
-
-               loop
-                  Token := Libadalang.Common.Next (Token);
-
-                  case Libadalang.Common.Kind
-                    (Libadalang.Common.Data (Token))
-                  is
-                     when Ada_Dot =>
-                        null;
-
-                     when Ada_Identifier =>
-                        Last := Token;
-
-                     when Ada_String =>
-                        --  Operator name.
-
-                        Last := Token;
-
-                     when Ada_Whitespace | Ada_Comma | Ada_Semicolon
-                        | Ada_Tick | Ada_Equal
-                        | Ada_Par_Open | Ada_Par_Close
-                        | Ada_All | Ada_Label_End
-                        =>
-                        exit;
-
-                     when others =>
-                        Ada.Text_IO.Put_Line
-                          (Libadalang.Common.Image (Token)
-                           & " at "
-                           & Libadalang.Slocs.Image (Libadalang.Common.Sloc_Range (Libadalang.Common.Data (Token)))
-                          );
-                        raise Program_Error;
-                  end case;
-               end loop;
-
+               Lookup_Identifier_Boundaries (Token, First, Last);
                Analyze_Range (Document, First, Last);
-
-            when Ada_Dot =>
-               First := Token;
-               Last  := Token;
-
-               --  GitLab: continuation of the prefixed name
-               --
-               --  XXX Doesn't check when it starts suffix after close
-               --  parenthesis.
-
-               loop
-                  Token := Libadalang.Common.Next (Token);
-
-                  case Libadalang.Common.Kind
-                    (Libadalang.Common.Data (Token))
-                  is
-                     when Ada_Dot =>
-                        null;
-
-                     when Ada_Identifier =>
-                        Last := Token;
-
-                     --  when Ada_String =>
-                     --     --  Operator name.
-                     --
-                     --     Last := Token;
-                     --
-                     when Ada_Whitespace | Ada_Comma | Ada_Par_Close
-                        | Ada_Semicolon | Ada_Tick | Ada_All
-                        =>
-                        exit;
-
-                     when others =>
-                        Ada.Text_IO.Put_Line
-                          (Libadalang.Common.Image (Token)
-                           & " at "
-                           & Libadalang.Slocs.Image (Libadalang.Common.Sloc_Range (Libadalang.Common.Data (Token)))
-                          );
-                        raise Program_Error;
-                  end case;
-               end loop;
-
-               if First /= Last then
-                  Analyze_Range (Document, First, Last);
-               end if;
 
             when Ada_Equal | Ada_Notequal | Ada_Amp | Ada_Not | Ada_And
                | Ada_Minus | Ada_Plus | Ada_Or | Ada_Gt | Ada_Divide | Ada_Mod
@@ -379,26 +375,34 @@ procedure LSIF.Driver is
                | Ada_Rem | Ada_Abs | Ada_String | Ada_Char
             =>
                --  - operator
-               --  - string literal when used ad operator name
+               --  - string literal when used as operator name
                --  - character literal
 
                Analyze_Range (Document, Token, Token);
 
-            when Ada_With | Ada_Whitespace | Ada_Semicolon | Ada_Comment
-               | Ada_Procedure | Ada_Is | Ada_Use | Ada_Type | Ada_Record
-               | Ada_Colon | Ada_End | Ada_Package | Ada_New | Ada_Par_Open
-               | Ada_Comma | Ada_Par_Close | Ada_Access | Ada_All | Ada_Assign
-               | Ada_Integer | Ada_Tick | Ada_Begin | Ada_Loop | Ada_Exit
-               | Ada_When | Ada_Case | Ada_Arrow | Ada_If | Ada_Then
-               | Ada_Raise | Ada_Else | Ada_Declare | Ada_Pipe | Ada_In
-               | Ada_Elsif | Ada_Others | Ada_Exception | Ada_For | Ada_Of
-               | Ada_Constant | Ada_Doubledot | Ada_Diamond | Ada_Termination
-               | Ada_Pragma | Ada_Null | Ada_Return | Ada_Out | Ada_Array
-               | Ada_Range | Ada_Function | Ada_Body | Ada_Do | Ada_While
-               | Ada_Private | Ada_Renames | Ada_Subtype | Ada_At
-               | Ada_Limited | Ada_Separate | Ada_Goto | Ada_Label_Start
-               | Ada_Generic | Ada_Decimal | Ada_Reverse | Ada_Delay
-               | Ada_Brack_Open | Ada_Brack_Close
+            when Ada_Termination
+               --  Keywords:
+               | Ada_Abort | Ada_Accept | Ada_Access | Ada_All | Ada_Array
+               | Ada_At | Ada_Begin | Ada_Body | Ada_Case | Ada_Constant
+               | Ada_Declare | Ada_Delay | Ada_Delta | Ada_Digits | Ada_Do
+               | Ada_Else | Ada_Elsif | Ada_End | Ada_Entry | Ada_Exception
+               | Ada_Exit | Ada_For | Ada_Function | Ada_Generic | Ada_Goto
+               | Ada_If | Ada_In | Ada_Is | Ada_Limited | Ada_Loop | Ada_New
+               | Ada_Null | Ada_Of | Ada_Others | Ada_Out | Ada_Package
+               | Ada_Pragma | Ada_Private | Ada_Procedure | Ada_Raise
+               | Ada_Range | Ada_Record | Ada_Renames | Ada_Reverse
+               | Ada_Return | Ada_Select | Ada_Separate | Ada_Subtype
+               | Ada_Task | Ada_Terminate | Ada_Then | Ada_Type | Ada_Use
+               | Ada_When | Ada_While | Ada_With
+               --  Other lexems:
+               | Ada_Whitespace | Ada_Comment | Ada_Integer | Ada_Decimal
+               --  Single character tokens:
+               | Ada_Colon | Ada_Semicolon | Ada_Comma | Ada_Par_Open
+               | Ada_Par_Close | Ada_Brack_Open | Ada_Brack_Close
+               | Ada_Target | Ada_Dot | Ada_Pipe | Ada_Tick
+               --  Double characters tokens:
+               | Ada_Assign | Ada_Arrow | Ada_Doubledot | Ada_Diamond
+               | Ada_Label_Start | Ada_Label_End
             =>
                null;
 
