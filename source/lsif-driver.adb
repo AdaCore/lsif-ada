@@ -373,22 +373,29 @@ procedure LSIF.Driver is
 
                Analyze_Range (Document, Token, Token);
 
-            when Ada_With | Ada_Whitespace | Ada_Semicolon | Ada_Comment
-               | Ada_Procedure | Ada_Is | Ada_Use | Ada_Type | Ada_Record
-               | Ada_Colon | Ada_End | Ada_Package | Ada_New | Ada_Par_Open
-               | Ada_Comma | Ada_Par_Close | Ada_Access | Ada_All | Ada_Assign
-               | Ada_Integer | Ada_Tick | Ada_Begin | Ada_Loop | Ada_Exit
-               | Ada_When | Ada_Case | Ada_Arrow | Ada_If | Ada_Then
-               | Ada_Raise | Ada_Else | Ada_Declare | Ada_Pipe | Ada_In
-               | Ada_Elsif | Ada_Others | Ada_Exception | Ada_For | Ada_Of
-               | Ada_Constant | Ada_Doubledot | Ada_Diamond | Ada_Termination
-               | Ada_Pragma | Ada_Null | Ada_Return | Ada_Out | Ada_Array
-               | Ada_Range | Ada_Function | Ada_Body | Ada_Do | Ada_While
-               | Ada_Private | Ada_Renames | Ada_Subtype | Ada_At
-               | Ada_Limited | Ada_Separate | Ada_Goto | Ada_Label_Start
-               | Ada_Generic | Ada_Decimal | Ada_Reverse | Ada_Delay
-               | Ada_Brack_Open | Ada_Brack_Close | Ada_Task | Ada_Target
-               | Ada_Select | Ada_Accept | Ada_Entry | Ada_Dot | Ada_Label_End
+            when Ada_Termination
+               --  Keywords:
+               | Ada_Abort | Ada_Accept | Ada_Access | Ada_All | Ada_Array
+               | Ada_At | Ada_Begin | Ada_Body | Ada_Case | Ada_Constant
+               | Ada_Declare | Ada_Delay | Ada_Delta | Ada_Digits | Ada_Do
+               | Ada_Else | Ada_Elsif | Ada_End | Ada_Entry | Ada_Exception
+               | Ada_Exit | Ada_For | Ada_Function | Ada_Generic | Ada_Goto
+               | Ada_If | Ada_In | Ada_Is | Ada_Limited | Ada_Loop | Ada_New
+               | Ada_Null | Ada_Of | Ada_Others | Ada_Out | Ada_Package
+               | Ada_Pragma | Ada_Private | Ada_Procedure | Ada_Raise
+               | Ada_Range | Ada_Record | Ada_Renames | Ada_Reverse
+               | Ada_Return | Ada_Select | Ada_Separate | Ada_Subtype
+               | Ada_Task | Ada_Terminate | Ada_Then | Ada_Type | Ada_Use
+               | Ada_When | Ada_While | Ada_With
+               --  Other lexems:
+               | Ada_Whitespace | Ada_Comment | Ada_Integer | Ada_Decimal
+               --  Single character tokens:
+               | Ada_Colon | Ada_Semicolon | Ada_Comma | Ada_Par_Open
+               | Ada_Par_Close | Ada_Brack_Open | Ada_Brack_Close
+               | Ada_Target | Ada_Dot | Ada_Pipe | Ada_Tick
+               --  Double characters tokens:
+               | Ada_Assign | Ada_Arrow | Ada_Doubledot | Ada_Diamond
+               | Ada_Label_Start | Ada_Label_End
             =>
                null;
 
