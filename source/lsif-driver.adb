@@ -311,8 +311,8 @@ procedure LSIF.Driver is
 
                      when Ada_Whitespace | Ada_Comma | Ada_Semicolon
                         | Ada_Tick | Ada_Equal
-                        | Ada_Par_Open | Ada_Par_Close
-                        | Ada_All | Ada_Label_End
+                        | Ada_Par_Open | Ada_Par_Close | Ada_Brack_Close
+                        | Ada_All | Ada_Label_End | Ada_Colon
                         =>
                         exit;
 
@@ -398,7 +398,8 @@ procedure LSIF.Driver is
                | Ada_Private | Ada_Renames | Ada_Subtype | Ada_At
                | Ada_Limited | Ada_Separate | Ada_Goto | Ada_Label_Start
                | Ada_Generic | Ada_Decimal | Ada_Reverse | Ada_Delay
-               | Ada_Brack_Open | Ada_Brack_Close
+               | Ada_Brack_Open | Ada_Brack_Close | Ada_Task | Ada_Target
+               | Ada_Select | Ada_Accept | Ada_Entry
             =>
                null;
 
