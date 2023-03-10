@@ -20,7 +20,9 @@
 package LSIF.Projects is
 
    procedure Initialize;
-   --  Load project files, extract configuration options, and prepare set of
-   --  files to be processed.
+   --  Load project files, extract configuration options.
+
+   procedure Build_Set_Of_Files;
+   --  Prepare set of files to be processed.
 
 end LSIF.Projects;
