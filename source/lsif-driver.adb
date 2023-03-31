@@ -487,12 +487,19 @@ begin
    declare
       Path : constant String :=
         LSIF.Configuration.Workspace_Root.Display_Full_Name;
+      Last : constant Natural :=
+        (if Path /= "" and then Path (Path'Last) = '/'
+         then Path'Last - 1
+         else Path'Last);
+      --  Depending from the source of the path it may or may not contains
+      --  trailing path separator. However, GitLab expects URI without
+      --  trailing path separator, so remove it if present.
 
    begin
       LSIF.Serializer.Write_Meta_Data_Vertex
         ("file://"
          & VSS.Strings.Conversions.To_Virtual_String
-           (Path (Path'First .. Path'Last - 1)));
+           (Path (Path'First .. Last)));
    end;
 
    --  Generate list of the documents
