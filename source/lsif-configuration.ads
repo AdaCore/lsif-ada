@@ -26,6 +26,9 @@ with Libadalang.Analysis;
 
 package LSIF.Configuration is
 
+   Output_File     : VSS.Strings.Virtual_String;
+   --  File to output generated data
+
    Project_File    : VSS.Strings.Virtual_String;
    --  Project file to process
 
