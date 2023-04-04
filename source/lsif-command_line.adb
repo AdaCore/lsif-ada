@@ -26,6 +26,11 @@ with LSIF.Configuration;
 
 package body LSIF.Command_Line is
 
+   Output_Option             : constant VSS.Command_Line.Value_Option :=
+     (Short_Name  => "o",
+      Long_Name   => "",
+      Value_Name  => "file",
+      Description => "File to output data");
    Project_Option            : constant VSS.Command_Line.Value_Option :=
      (Short_Name  => "P",
       Long_Name   => "project",
@@ -52,7 +57,22 @@ package body LSIF.Command_Line is
    -------------------
 
    procedure Apply_Options is
+      use type VSS.Strings.Virtual_String;
+
    begin
+      --  Extract name of the file to output information.
+
+      if VSS.Command_Line.Is_Specified (Output_Option) then
+         LSIF.Configuration.Output_File :=
+           VSS.Command_Line.Value (Output_Option);
+
+         --  '-' is special convention to use standard output
+
+         if LSIF.Configuration.Output_File = "-" then
+            LSIF.Configuration.Output_File.Clear;
+         end if;
+      end if;
+
       if VSS.Command_Line.Is_Specified (Workspace_Root_Option) then
          LSIF.Configuration.Workspace_Root :=
            GNATCOLL.VFS.Create_From_Base
@@ -72,6 +92,7 @@ package body LSIF.Command_Line is
       Positional : VSS.String_Vectors.Virtual_String_Vector;
 
    begin
+      VSS.Command_Line.Add_Option (Output_Option);
       VSS.Command_Line.Add_Option (Project_Option);
       VSS.Command_Line.Add_Option (Scenario_Option);
       VSS.Command_Line.Add_Option (Workspace_Root_Option);

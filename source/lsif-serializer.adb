@@ -16,16 +16,21 @@
 ------------------------------------------------------------------------------
 
 with VSS.JSON.Push_Writers;
+with VSS.Text_Streams.File_Output;
 with VSS.Text_Streams.Standards;
+
+with LSIF.Configuration;
 
 package body LSIF.Serializer is
 
    Counter : Interfaces.Integer_64 := 1;
 
-   Output  : aliased VSS.Text_Streams.Output_Text_Stream'Class :=
+   Std_Output  : aliased VSS.Text_Streams.Output_Text_Stream'Class :=
      VSS.Text_Streams.Standards.Standard_Output;
-   Writer  : VSS.JSON.Push_Writers.JSON_Simple_Push_Writer;
-   Success : Boolean := True;
+   File_Output : aliased VSS.Text_Streams.File_Output.File_Output_Text_Stream;
+   Output      : VSS.Text_Streams.Output_Text_Stream_Access;
+   Writer      : VSS.JSON.Push_Writers.JSON_Simple_Push_Writer;
+   Success     : Boolean := True;
 
    -------------------------
    -- Allocate_Identifier --
@@ -46,7 +51,15 @@ package body LSIF.Serializer is
 
    procedure Initialize is
    begin
-      Writer.Set_Stream (Output'Access);
+      if not LSIF.Configuration.Output_File.Is_Empty then
+         File_Output.Create (LSIF.Configuration.Output_File);
+         Output := File_Output'Access;
+
+      else
+         Output := Std_Output'Access;
+      end if;
+
+      Writer.Set_Stream (Output);
    end Initialize;
 
    -------------------------
