@@ -29,7 +29,7 @@ project LSIF is
    for Main use ("lsif-driver.adb");
 
    package Compiler is
-      for Switches ("Ada") use ("-g");
+      for Switches ("Ada") use ("-g", "-gnat2022");
    end Compiler;
 
    package Builder is
