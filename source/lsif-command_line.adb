@@ -133,7 +133,8 @@ package body LSIF.Command_Line is
          end if;
 
          LSIF.Configuration.Project_Context.Insert
-           (GPR2.Name_Type (VSS.Strings.Conversions.To_UTF_8_String (NV.Name)),
+           (GPR2.External_Name_Type
+              (VSS.Strings.Conversions.To_UTF_8_String (NV.Name)),
             VSS.Strings.Conversions.To_UTF_8_String (NV.Value));
       end loop;
    end Initialize;
