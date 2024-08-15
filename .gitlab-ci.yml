@@ -1,34 +1,26 @@
-variables:
-   # The common part of the URL for cloning from within a CI
-   GIT_CLONE_BASE: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}  
-
 build:
   services:
-    - image:sandbox
+    - image:pe-base
     - cpu:4
     - mem:16
   stage: build
-  script: |
-    set -x
-    . ~/.aws_container_credentials
-    export PATH=/it/e3/bin:$PATH
+  rules: # Launch only on merge requests
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+  script:
+    - generic_anod_ci
+    - cat /tmp/ci_env.sh
+    - . /tmp/ci_env.sh
 
-    mkdir subprojects
-    git clone $GIT_CLONE_BASE/eng/ide/gnatdoc subprojects/gnatdoc
-    export GPR_PROJECT_PATH=`pwd`/subprojects/gnatdoc/gnat:$GPR_PROJECT_PATH
+    # Build
+    - anod build lsif-ada $ACI_TRACK_QUALIFIER
 
-    anod install --sandbox-dir /it/wave stable-gnatall
-    anod install --sandbox-dir /it/wave stable-langkit_support
-    anod install --sandbox-dir /it/wave stable-libgpr2 --qualifier=bare
-    anod install --sandbox-dir /it/wave stable-libadalang
-    anod build --sandbox-dir /it/wave vss --qualifier=compiler=stable
-    ( eval $(anod printenv --sandbox-dir /it/wave stable-gnatall) ;\
-      eval $(anod printenv --sandbox-dir /it/wave stable-langkit_support) ;\
-      eval $(anod printenv --sandbox-dir /it/wave stable-libgpr2 --qualifier=bare) ;\
-      eval $(anod printenv --sandbox-dir /it/wave stable-libadalang) ;\
-      eval $(anod printenv --sandbox-dir /it/wave vss --qualifier=compiler=stable) ;\
-      make; \
-      ./bin/lsif-ada gnat/lsif.gpr > dump.lsif)
+    # Put lsif-ada on the PATH
+    - eval $(anod printenv lsif-ada $ACI_TRACK_QUALIFIER)
+    # Set the GPR_PROJECT_PATH to be able to process lsif.gpr
+    - eval $(anod printenv --build-env lsif-ada $ACI_TRACK_QUALIFIER)
+
+    # Run lsif-ada on itself
+    - lsif-ada gnat/lsif.gpr > dump.lsif
 
   artifacts:
     reports:
