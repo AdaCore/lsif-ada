@@ -22,11 +22,13 @@ with VSS.Command_Line;
 with VSS.Strings.Conversions;
 
 with GNATCOLL.VFS;
+with GPR2.Options;
 with GPR2.Path_Name.Set;
 with GPR2.Project.Attribute;
 with GPR2.Project.Registry.Attribute;
 with GPR2.Project.Registry.Pack;
 with GPR2.Project.Tree;
+with GPR2.Build.Source.Sets;
 with Libadalang.Analysis;
 with Libadalang.Project_Provider;
 
@@ -60,6 +62,8 @@ package body LSIF.Projects is
    ------------------------
 
    procedure Build_Set_Of_Files is
+      use LSIF.Configuration.Source_Vector;
+      use type GPR2.Language_Id;
    begin
       --  Prepare list of source files
 
@@ -68,14 +72,14 @@ package body LSIF.Projects is
            and then not Excluded_Project_Files.Contains (View.Path_Name)
          then
             for Source of View.Sources loop
-               if Source.Is_Ada
+               if Source.Language = GPR2.Ada_Language
                  and then
                    GNATCOLL.VFS.Greatest_Common_Path
                      ((1 => LSIF.Configuration.Workspace_Root,
                        2 => Source.Path_Name.Virtual_File))
                  = LSIF.Configuration.Workspace_Root
                then
-                  LSIF.Configuration.Sources.Insert (Source);
+                  LSIF.Configuration.Sources.Append (Source);
                end if;
             end loop;
          end if;
@@ -102,15 +106,30 @@ package body LSIF.Projects is
 
       --  Load project file
 
+      declare
+         Opts    : GPR2.Options.Object;
+         Success : Boolean;
       begin
-         Project_Tree.Load_Autoconf
-           (GPR2.Path_Name.Create_File
-              (GPR2.Filename_Type
-                 (VSS.Strings.Conversions.To_UTF_8_String
-                    (LSIF.Configuration.Project_File))),
-            LSIF.Configuration.Project_Context);
+         Opts.Add_Switch
+           (GPR2.Options.P,
+            VSS.Strings.Conversions.To_UTF_8_String
+              (LSIF.Configuration.Project_File));
+         Success := Project_Tree.Load
+           (Opts, With_Runtime => True);
 
-         Project_Tree.Update_Sources (With_Runtime => True);
+         if not Success then
+            VSS.Command_Line.Report_Error
+              ("unable to load project file");
+         else
+            Success := Project_Tree.Set_Context (LSIF.Configuration.Project_Context);
+
+            if not Success then
+               VSS.Command_Line.Report_Error
+                 ("unable to load the context");
+            end if;
+         end if;
+
+         Project_Tree.Update_Sources;
 
       exception
          when GPR2.Project_Error =>
@@ -163,16 +182,20 @@ package body LSIF.Projects is
                     ("empty name of the project file");
                end if;
 
-               if Project_Tree.Get_File
-                    (GPR2.Filename_Type
-                       (Item.Text)).Virtual_File = GNATCOLL.VFS.No_File
+               if Project_Tree.Root_Project.Has_Source
+                 (GPR2.Filename_Type (Item.Text))
                then
                   VSS.Command_Line.Report_Error
                     ("unable to resolve project file path");
                end if;
 
-               Excluded_Project_Files.Append
-                 (Project_Tree.Get_File (GPR2.Filename_Type (Item.Text)));
+               declare
+                  Path : constant GPR2.Path_Name.Object
+                     := Project_Tree.Root_Project.Source_Path
+                          (GPR2.Filename_Type (Item.Text), True, True);
+               begin
+                 Excluded_Project_Files.Append (Path);
+               end;
             end loop;
          end;
       end if;
