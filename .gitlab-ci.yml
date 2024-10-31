@@ -1,27 +1,7 @@
-build:
-  services:
-    - image:pe-base
-    - cpu:4
-    - mem:16
-  stage: build
-  rules: # Launch only on merge requests
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-  script:
-    - generic_anod_ci
-    - cat /tmp/ci_env.sh
-    - . /tmp/ci_env.sh
+stages:
+  - build
 
-    # Build
-    - anod build lsif-ada $ACI_TRACK_QUALIFIER
-
-    # Put lsif-ada on the PATH
-    - eval $(anod printenv lsif-ada $ACI_TRACK_QUALIFIER)
-    # Set the GPR_PROJECT_PATH to be able to process lsif.gpr
-    - eval $(anod printenv --build-env lsif-ada $ACI_TRACK_QUALIFIER)
-
-    # Run lsif-ada on itself
-    - lsif-ada gnat/lsif.gpr > dump.lsif
-
-  artifacts:
-    reports:
-      lsif: dump.lsif
+include:
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
+    inputs:
+      anod-args: run build_$ACI_TRACK --latest

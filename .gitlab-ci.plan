@@ -1,0 +1,10 @@
+def build_(qualifier={}):
+    with defaults(qualifier=qualifier):
+        anod_build("lsif-ada")
+
+# Edge
+
+edge_qualifier={"edge": True}
+
+def build_edge():
+    build_(edge_qualifier)
