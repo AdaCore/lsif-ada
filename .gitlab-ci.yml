@@ -1,35 +1,7 @@
-variables:
-   # The common part of the URL for cloning from within a CI
-   GIT_CLONE_BASE: https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}  
+stages:
+  - build
 
-build:
-  services:
-    - image:sandbox
-    - cpu:4
-    - mem:16
-  stage: build
-  script: |
-    set -x
-    . ~/.aws_container_credentials
-    export PATH=/it/e3/bin:$PATH
-
-    mkdir subprojects
-    git clone $GIT_CLONE_BASE/eng/ide/gnatdoc subprojects/gnatdoc
-    export GPR_PROJECT_PATH=`pwd`/subprojects/gnatdoc/gnat:$GPR_PROJECT_PATH
-
-    anod install --sandbox-dir /it/wave stable-gnatall
-    anod install --sandbox-dir /it/wave stable-langkit_support
-    anod install --sandbox-dir /it/wave stable-libgpr2 --qualifier=bare
-    anod install --sandbox-dir /it/wave stable-libadalang
-    anod build --sandbox-dir /it/wave vss --qualifier=compiler=stable
-    ( eval $(anod printenv --sandbox-dir /it/wave stable-gnatall) ;\
-      eval $(anod printenv --sandbox-dir /it/wave stable-langkit_support) ;\
-      eval $(anod printenv --sandbox-dir /it/wave stable-libgpr2 --qualifier=bare) ;\
-      eval $(anod printenv --sandbox-dir /it/wave stable-libadalang) ;\
-      eval $(anod printenv --sandbox-dir /it/wave vss --qualifier=compiler=stable) ;\
-      make; \
-      ./bin/lsif-ada gnat/lsif.gpr > dump.lsif)
-
-  artifacts:
-    reports:
-      lsif: dump.lsif
+include:
+  - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
+    inputs:
+      anod-args: run build_$ACI_TRACK --latest
