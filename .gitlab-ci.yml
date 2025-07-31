@@ -2,7 +2,40 @@ stages:
   - build
   - test
 
+# Ideally we would like to use one job to build lsif-ada, and another job to
+# use it. However using on the lsif-ada project itself requires the closure of
+# build dependencies to be available. So we choose to run lsif-ada in the same
+# job that builds it.
+#
+# To do so we instantiate a hidden `.build:linux` job with the `build`
+# component and reference its script section.
+
 include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
     inputs:
+      job-name: .build
       anod-args: run build_$ACI_TRACK --latest
+      cpus: 4
+      rules:
+        - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+
+build-and-lsif:
+  extends: .build:linux
+  script:
+    - !reference [.build:linux, script]
+
+    - gl-sections open --collapsed "Make lsif-ada available in the environment"
+    - anod printenv lsif-ada $ACI_TRACK_QUALIFIER
+    - eval $(anod printenv lsif-ada $ACI_TRACK_QUALIFIER)
+
+    - gl-sections open "Setup project closure to analyze lsif-ada"
+    - anod printenv lsif-ada $ACI_TRACK_QUALIFIER --build-env
+    - eval $(anod printenv lsif-ada $ACI_TRACK_QUALIFIER --build-env)
+
+    - gl-sections open "Generate LSIF"
+    - lsif-ada gnat/lsif.gpr >lsif-ada.lsif
+
+  artifacts:
+    reports:
+      lsif: lsif-ada.lsif
