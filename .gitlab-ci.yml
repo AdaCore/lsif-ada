@@ -1,5 +1,6 @@
 stages:
   - build
+  - test
 
 include:
   - component: $CI_SERVER_FQDN/eng/gitlab-templates/build@~latest
