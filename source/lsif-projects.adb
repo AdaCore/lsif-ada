@@ -17,8 +17,12 @@
 
 with Ada.Text_IO;
 
+with GPR2;
+with GPR2.Options;
+with GPR2.Project.View;
 with VSS.Application;
 with VSS.Command_Line;
+with VSS.Strings;
 with VSS.Strings.Conversions;
 
 with GNATCOLL.VFS;
@@ -60,6 +64,7 @@ package body LSIF.Projects is
    ------------------------
 
    procedure Build_Set_Of_Files is
+      use type GPR2.Language_Id;
    begin
       --  Prepare list of source files
 
@@ -68,7 +73,7 @@ package body LSIF.Projects is
            and then not Excluded_Project_Files.Contains (View.Path_Name)
          then
             for Source of View.Sources loop
-               if Source.Is_Ada
+               if Source.Language = GPR2.Ada_Language
                  and then
                    GNATCOLL.VFS.Greatest_Common_Path
                      ((1 => LSIF.Configuration.Workspace_Root,
@@ -102,15 +107,22 @@ package body LSIF.Projects is
 
       --  Load project file
 
-      begin
-         Project_Tree.Load_Autoconf
-           (GPR2.Path_Name.Create_File
-              (GPR2.Filename_Type
-                 (VSS.Strings.Conversions.To_UTF_8_String
-                    (LSIF.Configuration.Project_File))),
-            LSIF.Configuration.Project_Context);
+      declare
+         use GPR2.Options;
 
-         Project_Tree.Update_Sources (With_Runtime => True);
+         GPR2_Options : GPR2.Options.Object;
+         Load_Success : Boolean;
+      begin
+         GPR2_Options.Add_Switch
+           (P,
+            VSS.Strings.Conversions.To_UTF_8_String
+              (LSIF.Configuration.Project_File));
+
+         -- TODO add scenario variables from LSIF.Configuration.Project_Context
+         Load_Success :=
+           Project_Tree.Load (Options => GPR2_Options, With_Runtime => True);
+
+         Project_Tree.Update_Sources;
 
       exception
          when GPR2.Project_Error =>
@@ -163,16 +175,41 @@ package body LSIF.Projects is
                     ("empty name of the project file");
                end if;
 
-               if Project_Tree.Get_File
-                    (GPR2.Filename_Type
-                       (Item.Text)).Virtual_File = GNATCOLL.VFS.No_File
-               then
-                  VSS.Command_Line.Report_Error
-                    ("unable to resolve project file path");
-               end if;
+               declare
+                  use type VSS.Strings.Virtual_String;
 
-               Excluded_Project_Files.Append
-                 (Project_Tree.Get_File (GPR2.Filename_Type (Item.Text)));
+                  Project_View : GPR2.Project.View.Object;
+               begin
+                  for C in Project_Tree.Iterate loop
+                     declare
+                        use type GPR2.Simple_Name;
+
+                        View : constant GPR2.Project.View.Object :=
+                          GPR2.Project.Tree.Element (C);
+                     begin
+                        if View.Path_Name.Simple_Name
+                          = GPR2.Simple_Name (Item.Text)
+                        then
+                           -- Found the project we're looking for
+                           Project_View := View;
+
+                        end if;
+                     end;
+                  end loop;
+
+                  if Project_View.Is_Defined then
+                     Excluded_Project_Files.Append (Project_View.Path_Name);
+                  else
+                     VSS.Command_Line.Report_Error
+                       (VSS.Strings.Conversions.To_Virtual_String
+                          ("unable to resolve project file path: ")
+                        & VSS.Strings.Conversions.To_Virtual_String
+                            (Item.Text));
+                  end if;
+
+               end;
+
+
             end loop;
          end;
       end if;
