@@ -26,11 +26,13 @@ with VSS.Strings;
 with VSS.Strings.Conversions;
 
 with GNATCOLL.VFS;
+with GPR2.Options;
 with GPR2.Path_Name.Set;
 with GPR2.Project.Attribute;
 with GPR2.Project.Registry.Attribute;
 with GPR2.Project.Registry.Pack;
 with GPR2.Project.Tree;
+with GPR2.Build.Source.Sets;
 with Libadalang.Analysis;
 with Libadalang.Project_Provider;
 
@@ -64,6 +66,7 @@ package body LSIF.Projects is
    ------------------------
 
    procedure Build_Set_Of_Files is
+      use LSIF.Configuration.Source_Vector;
       use type GPR2.Language_Id;
    begin
       --  Prepare list of source files
@@ -80,7 +83,7 @@ package body LSIF.Projects is
                        2 => Source.Path_Name.Virtual_File))
                  = LSIF.Configuration.Workspace_Root
                then
-                  LSIF.Configuration.Sources.Insert (Source);
+                  LSIF.Configuration.Sources.Append (Source);
                end if;
             end loop;
          end if;
@@ -108,19 +111,27 @@ package body LSIF.Projects is
       --  Load project file
 
       declare
-         use GPR2.Options;
-
-         GPR2_Options : GPR2.Options.Object;
-         Load_Success : Boolean;
+         Opts    : GPR2.Options.Object;
+         Success : Boolean;
       begin
-         GPR2_Options.Add_Switch
-           (P,
+         Opts.Add_Switch
+           (GPR2.Options.P,
             VSS.Strings.Conversions.To_UTF_8_String
               (LSIF.Configuration.Project_File));
+         Success := Project_Tree.Load
+           (Opts, With_Runtime => True);
 
-         -- TODO add scenario variables from LSIF.Configuration.Project_Context
-         Load_Success :=
-           Project_Tree.Load (Options => GPR2_Options, With_Runtime => True);
+         if not Success then
+            VSS.Command_Line.Report_Error
+              ("unable to load project file");
+         else
+            Success := Project_Tree.Set_Context (LSIF.Configuration.Project_Context);
+
+            if not Success then
+               VSS.Command_Line.Report_Error
+                 ("unable to load the context");
+            end if;
+         end if;
 
          Project_Tree.Update_Sources;
 
