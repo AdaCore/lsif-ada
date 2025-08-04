@@ -17,29 +17,20 @@
 
 --  Tool's configuration
 
-with Ada.Containers;
-with Ada.Containers.Ordered_Sets;
-with GPR2.Build.Source.Sets;
-with GPR2.Path_Name;
+with Ada.Containers.Vectors;
+
 with VSS.Strings;
 
 with GNATCOLL.VFS;
+with GPR2.Build.Source;   use GPR2.Build.Source;
 with GPR2.Context;
-with GPR2.Build.Source;
 with Libadalang.Analysis;
 
 package LSIF.Configuration is
 
-   function "<" (Left, Right : GPR2.Build.Source.Object) return Boolean;
-   --  Comparison function for source files, used in ordered sets
-
-   function "<" (Left, Right : GPR2.Build.Source.Object) return Boolean
-   is (GPR2.Path_Name."<" (Left.Path_Name, Right.Path_Name));
-
-   use type GPR2.Build.Source.Object;
-
-   package Source_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => GPR2.Build.Source.Object, "<" => "<", "=" => "=");
+   package Source_Vector is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => GPR2.Build.Source.Object);
 
    Output_File     : VSS.Strings.Virtual_String;
    --  File to output generated data
@@ -53,8 +44,8 @@ package LSIF.Configuration is
    Workspace_Root  : GNATCOLL.VFS.Virtual_File;
    --  Root directory of the workspace.
 
-   Sources         : Source_Sets.Set;
-   --  Set of source files to be processed.
+   Sources         : Source_Vector.Vector;
+   --  List of source files to process
 
    LAL_Context     : Libadalang.Analysis.Analysis_Context;
    --  Libadalang context
