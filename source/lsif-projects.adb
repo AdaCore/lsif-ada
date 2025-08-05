@@ -17,8 +17,12 @@
 
 with Ada.Text_IO;
 
+with GPR2;
+with GPR2.Options;
+with GPR2.Project.View;
 with VSS.Application;
 with VSS.Command_Line;
+with VSS.Strings;
 with VSS.Strings.Conversions;
 
 with GNATCOLL.VFS;
@@ -182,20 +186,41 @@ package body LSIF.Projects is
                     ("empty name of the project file");
                end if;
 
-               if Project_Tree.Root_Project.Has_Source
-                 (GPR2.Filename_Type (Item.Text))
-               then
-                  VSS.Command_Line.Report_Error
-                    ("unable to resolve project file path");
-               end if;
-
                declare
-                  Path : constant GPR2.Path_Name.Object
-                     := Project_Tree.Root_Project.Source_Path
-                          (GPR2.Filename_Type (Item.Text), True, True);
+                  use type VSS.Strings.Virtual_String;
+
+                  Project_View : GPR2.Project.View.Object;
                begin
-                 Excluded_Project_Files.Append (Path);
+                  for C in Project_Tree.Iterate loop
+                     declare
+                        use type GPR2.Simple_Name;
+
+                        View : constant GPR2.Project.View.Object :=
+                          GPR2.Project.Tree.Element (C);
+                     begin
+                        if View.Path_Name.Simple_Name
+                          = GPR2.Simple_Name (Item.Text)
+                        then
+                           -- Found the project we're looking for
+                           Project_View := View;
+
+                        end if;
+                     end;
+                  end loop;
+
+                  if Project_View.Is_Defined then
+                     Excluded_Project_Files.Append (Project_View.Path_Name);
+                  else
+                     VSS.Command_Line.Report_Error
+                       (VSS.Strings.Conversions.To_Virtual_String
+                          ("unable to resolve project file path: ")
+                        & VSS.Strings.Conversions.To_Virtual_String
+                            (Item.Text));
+                  end if;
+
                end;
+
+
             end loop;
          end;
       end if;

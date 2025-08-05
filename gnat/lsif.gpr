@@ -42,4 +42,8 @@ project LSIF is
         ("libgnatdoc.gpr", "vss_json.gpr", "vss_text.gpr");
    end LSIF;
 
+   package Binder is
+      for Switches ("Ada") use ("-Es");
+   end Binder;
+
 end LSIF;
