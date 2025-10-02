@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --                            GNAT LSIF Indexer                             --
 --                                                                          --
---                       Copyright (C) 2023, AdaCore                        --
+--                     Copyright (C) 2023-2025, AdaCore                     --
 --                                                                          --
 -- This is free software;  you can redistribute it  and/or modify it  under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -232,7 +232,11 @@ procedure LSIF.Driver is
 
             begin
                GNATdoc.Comments.Helpers.Get_Plain_Text_Documentation
-                 (Canonical, (others => <>), Code_Snippet, Documentation);
+                 (Canonical,
+		  Canonical,
+		  (others => <>),
+		  Code_Snippet,
+		  Documentation);
 
             exception
                when E : others =>
